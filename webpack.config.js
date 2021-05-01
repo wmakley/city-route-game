@@ -9,7 +9,6 @@ module.exports = function (env, argv) {
 
 	return {
 		entry: {
-			'board-editor': path.resolve(__dirname, 'javascript/board-editor/index.js')
 		},
 
 		output: {
@@ -18,16 +17,6 @@ module.exports = function (env, argv) {
 		},
 
 		module: {
-			rules: [{
-				test: /\.elm$/,
-				exclude: [/elm-stuff/, /node_modules/],
-				use: {
-					loader: 'elm-webpack-loader',
-					options: {
-						cwd: elmSource,
-					}
-				}
-			}]
 		},
 
 		devServer: {
