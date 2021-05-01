@@ -1,8 +1,8 @@
 package admin
 
 import (
-	"hansa/domain"
-	"hansa/util"
+	"city-route-game/domain"
+	"city-route-game/util"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -26,7 +26,7 @@ func BoardsIndexHandler(w http.ResponseWriter, r *http.Request) {
 func NewBoardHandler(w http.ResponseWriter, r *http.Request) {
 	data := NewBoardForm{
 		Form: Form{
-			Action: "/admin/boards",
+			Action: "/boards",
 			Method: "POST",
 		},
 		Name: "",
@@ -62,7 +62,7 @@ func CreateBoardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.TurbolinksVisit("/admin/boards", true, w, r)
+	util.TurbolinksVisit("/boards", true, w, r)
 }
 
 func GetBoardByIdHandler(w http.ResponseWriter, r *http.Request) {
@@ -95,7 +95,7 @@ func EditBoardHandler(w http.ResponseWriter, r *http.Request) {
 
 	form := EditBoardForm{
 		Form: Form{
-			Action: "/admin/boards/" + key,
+			Action: "/boards/" + key,
 			Method: "PATCH",
 		},
 		Name: board.Name,
@@ -150,7 +150,7 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.TurbolinksVisit("/admin/boards/"+key, true, w, r)
+	util.TurbolinksVisit("/boards/"+key, true, w, r)
 }
 
 func DeleteBoardHandler(w http.ResponseWriter, r *http.Request) {
@@ -175,5 +175,5 @@ func DeleteBoardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.TurbolinksVisit("/admin/boards", true, w, r)
+	util.TurbolinksVisit("/boards", true, w, r)
 }

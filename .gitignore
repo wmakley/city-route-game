@@ -8,9 +8,10 @@ Thumbs.db
 # Database files
 *.sqlite
 *.db
+/data/*
 
 # Executables
-hansa
+/bin/*
 
 # Node Modules
 node_modules

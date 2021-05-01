@@ -1,6 +1,6 @@
-# Hansa Teutonica
+# City Route Game
 
-Implementation of board game Hansa Teutonica for pedagogical purposes.
+Implementation of a board game similar to Hansa Teutonica (© 2020 Pegasus Spiele GmbH) for pedagogical purposes.
 
 ## Requirements
 
@@ -11,10 +11,6 @@ Implementation of board game Hansa Teutonica for pedagogical purposes.
 ```sh
 make
 make run
-
-# Or without make:
-go build -o hansa .
-./hansa -listenaddr 0.0.0.0 -port 8080
 ```
 
 Command line flags are optional. Listens on ":8080" by default.

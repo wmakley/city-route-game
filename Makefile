@@ -4,19 +4,19 @@ GO_SRCS := $(shell find . -type f -name '*.go' -and -not -name '*_test.go')
 
 REFLEX := $(shell command -v reflex 2> /dev/null)
 
-hansa: $(GO_SRCS)
-	go build -o $@
+all: bin/admin
+
+bin/admin: $(GO_SRCS)
+	go build -o $@ cmd/admin/main.go
 
 clean:
-	rm -f hansa
+	rm -fv bin/*
 
-run: hansa
-	./hansa $(SERVER_FLAGS)
+run: bin/admin
+	bin/admin $(SERVER_FLAGS)
 
-clean_db:
-	rm -f ./hansa.sqlite
-
-run_clean_db: clean_db run
+clean-db:
+	rm -f ./admin.sqlite
 
 watch:
 ifndef REFLEX
@@ -25,4 +25,4 @@ endif
 	reflex -s -r '\.go$$' make run
 
 test:
-	go test .
+	go test ./admin

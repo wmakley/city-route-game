@@ -1,7 +1,7 @@
 package admin
 
 import (
-	"hansa/util"
+	"city-route-game/util"
 	"html/template"
 	"log"
 	"net/http"

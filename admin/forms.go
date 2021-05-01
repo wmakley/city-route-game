@@ -1,7 +1,7 @@
 package admin
 
 import (
-	"hansa/domain"
+	"city-route-game/domain"
 	"strings"
 
 	"gorm.io/gorm"

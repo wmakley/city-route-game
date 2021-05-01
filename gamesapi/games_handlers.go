@@ -1,8 +1,8 @@
 package gamesapi
 
 import (
-	"hansa/domain"
-	"hansa/util"
+	"city-route-game/domain"
+	"city-route-game/util"
 	"net/http"
 
 	"github.com/gorilla/mux"
