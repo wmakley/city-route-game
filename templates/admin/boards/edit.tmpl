@@ -1,0 +1,12 @@
+{{template "layout" .}}
+{{define "meta"}}
+<meta name="turbolinks-cache-control" content="no-cache">
+{{end}}
+{{define "title"}}Edit {{.Name}} - Hansa Admin{{end}}
+{{define "content"}}
+<div class="container">
+	<h1>Edit {{.Name}}</h1>
+
+	{{template "_form" .}}
+</div>
+{{end}}

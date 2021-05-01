@@ -1,0 +1,44 @@
+{{define "_form"}}
+<form
+	action="{{.Action}}"
+	method="POST"
+	class="row needs-validation"
+	id="board-form"
+	data-remote="true"
+	novalidate>
+
+	<input type="hidden" name="_method" value="{{.Method}}">
+
+	<div class="mb-3">
+		{{ $errors := index .Errors "Name" }}
+		<label for="board_name" class="form-label">Board Name</label>
+		<input
+			id="board_name"
+			type="text"
+			name="Name"
+			placeholder="Board Name"
+			class="form-control{{ if $errors }} is-invalid{{ end }}"
+			maxlength="100"
+			aria-describedby="board_name_help_block"
+			{{if .IsInsert}}autofocus{{end}}
+			value="{{.Name}}">
+		{{ if $errors }}
+		<div id="validationNameFeedback" class="invalid-feedback">
+			{{ range $errors }}Name {{.}}.{{ end }}
+		</div>
+		{{ end }}
+	</div>
+
+	<div id="board_name_help_block" class="form-text">
+		The board name must be globally unique, and 100 characters or less.
+	</div>
+
+	<div class="col-12" style="margin-top: 30px;">
+		<button type="submit" class="btn btn-primary" style="margin-right: 10px;">
+			{{if .IsUpdate}}Update{{else}}Create{{end}} Board
+		</button>
+
+		<a href="/admin/boards">Cancel</a>
+	</div>
+</form>
+{{end}}

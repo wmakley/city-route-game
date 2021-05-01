@@ -1,0 +1,19 @@
+# OS and text editor cruft
+Thumbs.db
+.DS_Store
+._*
+~*
+*~
+
+# Database files
+*.sqlite
+*.db
+
+# Executables
+hansa
+
+# Node Modules
+node_modules
+
+# VSCode currently is machine-specific
+.vscode

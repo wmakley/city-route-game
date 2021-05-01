@@ -1,0 +1,12 @@
+{{template "layout" .}}
+{{define "meta"}}
+<meta name="turbolinks-cache-control" content="no-cache">
+{{end}}
+{{define "title"}}New Board - Hansa Admin{{end}}
+{{define "content"}}
+<div class="container">
+	<h1>New Board</h1>
+
+	{{template "_form" .}}
+</div>
+{{end}}

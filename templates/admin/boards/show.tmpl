@@ -1,0 +1,19 @@
+{{template "layout" .}}
+{{define "title"}}{{.Name}} - Hansa Admin{{end}}
+{{define "content"}}
+	<div class="container">
+		<h1>{{.Name}}</h1>
+
+		<p>
+			<strong>ID:</strong> {{.ID}}
+			<br>
+			<strong>Created At:</strong> {{.CreatedAt}}
+			<br>
+			<strong>Updated At:</strong> {{.CreatedAt}}
+		</p>
+
+		<p>
+			<a href="/admin/boards">Back</a>
+		</p>
+	</div>
+{{end}}
