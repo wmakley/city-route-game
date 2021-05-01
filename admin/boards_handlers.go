@@ -70,7 +70,7 @@ func GetBoardByIdHandler(w http.ResponseWriter, r *http.Request) {
 	key := vars["id"]
 
 	var board domain.Board
-	err := db.Find(&board, key).Error
+	err := db.First(&board, key).Error
 	if err != nil {
 		handleDBErr(w, r, err)
 		return
@@ -87,7 +87,7 @@ func EditBoardHandler(w http.ResponseWriter, r *http.Request) {
 	key := vars["id"]
 
 	var board domain.Board
-	err := db.Find(&board, key).Error
+	err := db.First(&board, key).Error
 	if err != nil {
 		handleDBErr(w, r, err)
 		return
@@ -130,7 +130,7 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 	err = db.Transaction(func(tx *gorm.DB) error {
 		var board domain.Board
 
-		err := tx.Find(&board, key).Error
+		err := tx.First(&board, key).Error
 		if err != nil {
 			return err
 		}
