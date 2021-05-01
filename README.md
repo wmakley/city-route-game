@@ -12,7 +12,8 @@ Implementation of board game Hansa Teutonica for pedagogical purposes.
 make
 make run
 
-# Or manual start:
+# Or without make:
+go build -o hansa .
 ./hansa -listenaddr 0.0.0.0 -port 8080
 ```
 
