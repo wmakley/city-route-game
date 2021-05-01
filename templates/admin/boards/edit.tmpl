@@ -1,12 +1,20 @@
 {{template "layout" .}}
+{{define "title"}}Edit {{.Name}} - Admin{{end}}
+
 {{define "meta"}}
 <meta name="turbolinks-cache-control" content="no-cache">
 {{end}}
-{{define "title"}}Edit {{.Name}} - Admin{{end}}
+
 {{define "content"}}
 <div class="container">
 	<h1>Edit {{.Name}}</h1>
 
 	{{template "_form" .}}
+
+	<div id="board-editor"></div>
 </div>
+{{end}}
+
+{{define "endbody"}}
+<script src="http://localhost:9000/board-editor.bundle.js"></script>
 {{end}}

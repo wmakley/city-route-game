@@ -13,8 +13,18 @@ Thumbs.db
 # Executables
 /bin/*
 
-# Node Modules
+# Vendored Packages
 node_modules
+elm-stuff
+
+# Log files
+*.log
+*.log.*
+
+# Random caches
+.cache
+.babel-cache
+tmp
 
 # VSCode currently is machine-specific
 .vscode
