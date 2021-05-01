@@ -60,16 +60,17 @@ func (f *Form) HasError() bool {
 	return true
 }
 
-type NewBoardForm struct {
+type BoardForm struct {
 	Form
+	ID   *uint
 	Name string
 }
 
-func (f *NewBoardForm) NormalizeInputs() {
+func (f *BoardForm) NormalizeInputs() {
 	f.Name = strings.TrimSpace(f.Name)
 }
 
-func (f *NewBoardForm) IsValid(db *gorm.DB) bool {
+func (f *BoardForm) IsValid(db *gorm.DB) bool {
 	f.ClearErrors()
 
 	if len(f.Name) == 0 {
@@ -79,7 +80,22 @@ func (f *NewBoardForm) IsValid(db *gorm.DB) bool {
 	} else {
 		// Name is in range, so go ahead and check for duplicates
 		var dupe domain.Board
-		err := db.Where("name = ?", f.Name).First(&dupe).Error
+
+		var query string
+		if f.ID == nil {
+			query = "name = ?"
+		} else {
+			query = "name = ? AND id <> ?"
+		}
+
+		conditions := []interface{}{
+			"name = ?", f.Name,
+		}
+		if f.ID != nil {
+			conditions = append(conditions, f.ID)
+		}
+
+		err := db.Where(query, conditions...).First(&dupe).Error
 		if err == nil {
 			f.AddError("Name", "has already been taken")
 		} else if err != gorm.ErrRecordNotFound {
@@ -89,5 +105,3 @@ func (f *NewBoardForm) IsValid(db *gorm.DB) bool {
 
 	return !f.HasError()
 }
-
-type EditBoardForm NewBoardForm

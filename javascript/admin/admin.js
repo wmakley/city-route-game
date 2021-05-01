@@ -1,5 +1,12 @@
 import Turbolinks from 'turbolinks'
+import { Application } from "stimulus"
+import { definitionsFromContext } from "stimulus/webpack-helpers"
+
 Turbolinks.start()
+
+const application = Application.start()
+const context = require.context("./controllers", true, /\.js$/)
+application.load(definitionsFromContext(context))
 
 const domParser = new DOMParser()
 
@@ -107,7 +114,7 @@ document.addEventListener("turbolinks:load", function() {
 			})
 			const body = await response.text()
 
-			if (response.ok) {
+			if (response.ok && response.headers.get("Content-Type").startsWith("text/javascript")) {
 				// Execute turbolinks visit javascript
 				eval(body)
 			} else {

@@ -3,6 +3,7 @@ package admin
 import (
 	"city-route-game/domain"
 	"city-route-game/util"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -24,7 +25,7 @@ func BoardsIndexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewBoardHandler(w http.ResponseWriter, r *http.Request) {
-	data := NewBoardForm{
+	data := BoardForm{
 		Form: Form{
 			Action: "/boards",
 			Method: "POST",
@@ -39,7 +40,7 @@ func NewBoardHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateBoardHandler(w http.ResponseWriter, r *http.Request) {
-	var form NewBoardForm
+	var form BoardForm
 
 	err := formDecoder.Decode(&form, r.PostForm)
 	if err != nil {
@@ -93,11 +94,12 @@ func EditBoardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	form := EditBoardForm{
+	form := BoardForm{
 		Form: Form{
 			Action: "/boards/" + key,
 			Method: "PATCH",
 		},
+		ID:   &board.ID,
 		Name: board.Name,
 	}
 
@@ -111,7 +113,7 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	var form NewBoardForm
+	var form BoardForm
 
 	err := formDecoder.Decode(&form, r.PostForm)
 	if err != nil {
@@ -150,7 +152,9 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.TurbolinksVisit("/boards/"+key, true, w, r)
+	// Hide the form
+	w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+	fmt.Fprintf(w, ";updateFormSucceeded();")
 }
 
 func DeleteBoardHandler(w http.ResponseWriter, r *http.Request) {

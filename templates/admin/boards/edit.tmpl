@@ -1,15 +1,23 @@
 {{template "layout" .}}
 {{define "title"}}Edit {{.Name}} - Admin{{end}}
 
-{{define "meta"}}
-<meta name="turbolinks-cache-control" content="no-cache">
-{{end}}
-
 {{define "content"}}
 <div class="container">
 	<h1>Edit {{.Name}}</h1>
 
-	{{template "_form" .}}
+	<div data-controller="edit-form">
+		<button
+			type="button"
+			data-edit-form-target="renameButton"
+			data-action="edit-form#toggle"
+			class="btn btn-link"
+			style="float:right; margin-top: -50px;">
+			Rename
+		</button>
+		<div data-edit-form-target="form" style="display:none;">
+			{{template "_form" .}}
+		</div>
+	</div>
 
 	<div id="board-editor"></div>
 </div>

@@ -1,15 +1,13 @@
 <template>
-  <p>It works!</p>
+  <Board />
 </template>
 
 <script>
-export default {
-  mounted() {
-    console.log("mounted");
-  },
+import Board from "./components/Board.vue";
 
-  unmounted() {
-    console.log("unmounted");
+export default {
+  components: {
+    Board: Board,
   },
 };
 </script>

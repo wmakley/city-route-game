@@ -8,6 +8,7 @@
 	novalidate>
 
 	<input type="hidden" name="_method" value="{{.Method}}">
+	<input type="hidden" name="ID" value="{{.ID}}">
 
 	<div class="mb-3">
 		{{ $errors := index .Errors "Name" }}
@@ -20,6 +21,7 @@
 			class="form-control{{ if $errors }} is-invalid{{ end }}"
 			maxlength="100"
 			aria-describedby="board_name_help_block"
+			data-edit-form-target="nameInput"
 			{{if .IsInsert}}autofocus{{end}}
 			value="{{.Name}}">
 		{{ if $errors }}
@@ -34,11 +36,20 @@
 	</div>
 
 	<div class="col-12" style="margin-top: 30px;">
-		<button type="submit" class="btn btn-primary" style="margin-right: 10px;">
+		<button
+			type="submit"
+			data-edit-form-target="submitButton"
+			class="btn btn-primary"
+			style="margin-right: 10px;">
 			{{if .IsUpdate}}Update{{else}}Create{{end}} Board
 		</button>
 
-		<a href="/boards">Cancel</a>
+		<a
+			href="/boards"
+			data-edit-form-target="cancelButton"
+			data-action="click->edit-form#cancelButtonClick">
+			Cancel
+		</a>
 	</div>
 </form>
 {{end}}

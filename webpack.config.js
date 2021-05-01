@@ -1,7 +1,8 @@
 const path = require('path')
 const webpack = require('webpack')
-const { VueLoaderPlugin } = require('vue-loader');
-const WebpackDevServer = require('webpack-dev-server');
+const { VueLoaderPlugin } = require('vue-loader')
+const WebpackDevServer = require('webpack-dev-server')
+const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 
 module.exports = function (env, argv) {
 	process.env.NODE_ENV = argv.mode;
@@ -34,6 +35,15 @@ module.exports = function (env, argv) {
 					test: /\.vue$/,
 					loader: 'vue-loader'
 				},
+				{
+					test: /\.css$/,
+					use: [
+						!isProduction
+						? 'vue-style-loader'
+						: MiniCssExtractPlugin.loader,
+						'css-loader'
+					]
+				}
 			],
 		},
 
