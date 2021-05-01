@@ -7,13 +7,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type Validatable interface {
-	Errors() map[string][]string
-	AddError(name string, msg string)
-	ClearErrors()
-	HasError() bool
-}
-
 type Form struct {
 	errors map[string][]string `schema:"-"`
 	Action string              `schema:"-"`
