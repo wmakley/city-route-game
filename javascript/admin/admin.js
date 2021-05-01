@@ -1,3 +1,6 @@
+import Turbolinks from 'turbolinks'
+Turbolinks.start()
+
 const domParser = new DOMParser()
 
 const Modal = {
@@ -49,8 +52,14 @@ const Modal = {
 	}
 }
 
+let boardEditor = null;
+
 document.addEventListener("turbolinks:before-cache", function() {
 	Modal.dispose()
+	if (boardEditor) {
+		boardEditor.unmount()
+		boardEditor = null
+	}
 })
 
 document.addEventListener("turbolinks:load", function() {
@@ -115,6 +124,19 @@ document.addEventListener("turbolinks:load", function() {
 		if ((eltToFocus.tagName === "INPUT" && eltToFocus.type === "text") || eltToFocus.tagName === "TEXTAREA") {
 			eltToFocus.setSelectionRange(eltToFocus.value.length, eltToFocus.value.length)
 		}
+	}
+
+	const boardEditorDiv = document.getElementById("board-editor")
+	if (boardEditorDiv) {
+		import('./board-editor')
+			.then(({ default: createApp }) => {
+				boardEditor = createApp()
+				boardEditor.mount(boardEditorDiv)
+			})
+			.catch((error) => {
+				console.error(error)
+				alert('An error occurred while loading the board editor. \u{1F622}')
+			})
 	}
 })
 

@@ -19,6 +19,10 @@
 	},
 	"homepage": "https://github.com/wmakley/city-route-game#readme",
 	"devDependencies": {
+		"@vue/compiler-sfc": "^3.0.11",
+		"turbolinks": "^5.2.0",
+		"vue": "^3.0.11",
+		"vue-loader": "^16.2.0",
 		"webpack": "^5.36.2",
 		"webpack-cli": "^4.6.0",
 		"webpack-dev-server": "^3.11.2"
