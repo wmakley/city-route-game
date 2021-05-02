@@ -1,9 +1,17 @@
 <template>
-  <div class="game-board" :style="boardStyle"></div>
+  <div class="game-board" :style="boardStyle">
+    <City v-for="city in cities" :city="city" :key="city.id" />
+  </div>
 </template>
 
 <script>
+import City from "./City.vue";
+
 export default {
+  components: {
+    City: City,
+  },
+
   computed: {
     boardStyle() {
       return {
@@ -11,12 +19,17 @@ export default {
         height: `${this.$store.state.board.height}px`,
       };
     },
+
+    cities() {
+      return this.$store.state.cities;
+    },
   },
 };
 </script>
 
 <style scoped>
 .game-board {
+  z-index: 10;
   display: block;
   margin-top: 10px;
   border: 2px solid rgb(139, 74, 74);

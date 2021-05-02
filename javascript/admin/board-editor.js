@@ -8,7 +8,28 @@ const store = createStore({
 			board: {
 				width: 800,
 				height: 500
-			}
+			},
+
+			cities: [
+				{
+					id: 1,
+					name: "Beautiful City",
+					slots: [],
+					pos: {
+						x: 10,
+						y: 10,
+					},
+				},
+				{
+					id: 2,
+					name: "Ugly City",
+					slots: [],
+					pos: {
+						x: 200,
+						y: 50,
+					},
+				}
+			]
 		}
 	},
 
