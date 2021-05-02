@@ -62,7 +62,7 @@ func (f *Form) HasError() bool {
 
 type BoardForm struct {
 	Form
-	ID   *uint
+	ID   uint
 	Name string
 }
 
@@ -82,7 +82,7 @@ func (f *BoardForm) IsValid(db *gorm.DB) bool {
 		var dupe domain.Board
 
 		var query string
-		if f.ID == nil {
+		if f.ID == 0 {
 			query = "name = ?"
 		} else {
 			query = "name = ? AND id <> ?"
@@ -91,7 +91,7 @@ func (f *BoardForm) IsValid(db *gorm.DB) bool {
 		conditions := []interface{}{
 			"name = ?", f.Name,
 		}
-		if f.ID != nil {
+		if f.ID != 0 {
 			conditions = append(conditions, f.ID)
 		}
 

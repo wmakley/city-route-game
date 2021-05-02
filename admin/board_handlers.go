@@ -99,7 +99,7 @@ func EditBoardHandler(w http.ResponseWriter, r *http.Request) {
 			Action: "/boards/" + key,
 			Method: "PATCH",
 		},
-		ID:   &board.ID,
+		ID:   board.ID,
 		Name: board.Name,
 	}
 
