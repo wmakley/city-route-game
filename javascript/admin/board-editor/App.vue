@@ -5,14 +5,7 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import Board from "./components/Board.vue";
 import BoardSettings from "./components/BoardSettings.vue";
-
-export default {
-  components: {
-    Board: Board,
-    BoardSettings: BoardSettings,
-  },
-};
 </script>

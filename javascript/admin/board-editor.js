@@ -6,7 +6,7 @@ const store = createStore({
 	state() {
 		return {
 			board: {
-				width: 500,
+				width: 800,
 				height: 500
 			}
 		}
