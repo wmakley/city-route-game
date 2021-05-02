@@ -1,6 +1,8 @@
+import './admin.css'
 import Turbolinks from 'turbolinks'
 import { Application } from "stimulus"
 import { definitionsFromContext } from "stimulus/webpack-helpers"
+import { default as BootstrapModal } from 'bootstrap/js/dist/modal';
 
 Turbolinks.start()
 
@@ -24,7 +26,7 @@ const Modal = {
 			this.title = this.element.querySelector(".modal-title")
 			this.body = this.element.querySelector(".modal-body")
 			this.okayButton = this.element.querySelector(".btn-primary")
-			this.bootstrapModal = new bootstrap.Modal(this.element)
+			this.bootstrapModal = new BootstrapModal(this.element)
 		}
 
 		this.title.innerHTML = title

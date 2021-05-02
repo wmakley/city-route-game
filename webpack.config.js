@@ -19,6 +19,10 @@ module.exports = function (env, argv) {
 		})
 	];
 
+	if (isProduction) {
+		plugins.push(new MiniCssExtractPlugin());
+	}
+
 	return {
 		entry: {
 			'admin': path.join(__dirname, 'javascript/admin/admin.js')
