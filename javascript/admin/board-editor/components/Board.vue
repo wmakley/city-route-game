@@ -35,5 +35,6 @@ export default {
   border: 2px solid rgb(139, 74, 74);
   border-radius: 10px;
   background: beige;
+  overflow: auto;
 }
 </style>

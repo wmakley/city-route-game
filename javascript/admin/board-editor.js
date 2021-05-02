@@ -2,6 +2,23 @@ import { createApp } from 'vue';
 import { createStore } from 'vuex';
 import App from './board-editor/App.vue';
 
+function toInt(maybeNumber, valueIfNaN) {
+	if (typeof maybeNumber === "number") {
+		if (isNaN(maybeNumber)) {
+			return valueIfNaN
+		} else {
+			return maybeNumber
+		}
+	}
+
+	const numberAsInt = parseInt(maybeNumber, 10)
+	if (isNaN(numberAsInt)) {
+		return valueIfNaN
+	}
+
+	return numberAsInt
+}
+
 const store = createStore({
 	state() {
 		return {
@@ -9,6 +26,8 @@ const store = createStore({
 				width: 800,
 				height: 500
 			},
+
+			selectedCityId: null,
 
 			cities: [
 				{
@@ -33,21 +52,71 @@ const store = createStore({
 		}
 	},
 
+	getters: {
+		selectedCity(state) {
+			if (state.selectedCityId === null) {
+				return null;
+			}
+
+			for (const city of state.cities) {
+				if (city.id === state.selectedCityId) {
+					return city;
+				}
+			}
+
+			return null;
+		}
+	},
+
 	mutations: {
 		setBoardWidth(state, width) {
-			let widthNumber = parseInt(width, 10);
-			if (isNaN(widthNumber)) {
-				widthNumber = 0;
-			}
+			const widthNumber = toInt(width, 0)
 			state.board.width = widthNumber
 		},
 
 		setBoardHeight(state, height) {
-			let heightNumber = parseInt(height, 10);
-			if (isNaN(heightNumber)) {
-				heightNumber = 0;
-			}
+			const heightNumber = toInt(height, 0)
 			state.board.height = heightNumber
+		},
+
+		setSelectedCityId(state, id) {
+			const idNum = toInt(id, null)
+			state.selectedCityId = idNum
+		},
+
+		setCityName(state, payload) {
+			const { id, name } = payload
+			console.log("set city name:", id, name)
+			if (typeof name !== "string") {
+				throw new Error("city name is not a string")
+			}
+
+			const city = state.cities.find(c => c.id === id)
+			if (!city) {
+				throw new Error(`City ${id} not found`)
+			}
+
+			city.name = name
+		},
+
+		setCityPosX(state, payload) {
+			const {id, x} = payload
+			const city = state.cities.find(c => c.id === id)
+			if (!city) {
+				throw new Error(`City ${id} not found`)
+			}
+
+			city.pos.x = x
+		},
+
+		setCityPosY(state, payload) {
+			const {id, y} = payload
+			const city = state.cities.find(c => c.id === id)
+			if (!city) {
+				throw new Error(`City ${id} not found`)
+			}
+
+			city.pos.y = y
 		}
 	}
 });
