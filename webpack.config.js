@@ -32,6 +32,11 @@ module.exports = function (env, argv) {
 		module: {
 			rules: [
 				{
+					test: /\.js$/,
+					enforce: 'pre',
+					use: ['source-map-loader'],
+				},
+				{
 					test: /\.vue$/,
 					loader: 'vue-loader'
 				},
