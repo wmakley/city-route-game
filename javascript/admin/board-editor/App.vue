@@ -1,22 +1,18 @@
 <template>
-  <Board :board="board" />
+  <div class="board-editor">
+    <BoardSettings />
+    <Board />
+  </div>
 </template>
 
 <script>
 import Board from "./components/Board.vue";
+import BoardSettings from "./components/BoardSettings.vue";
 
 export default {
   components: {
     Board: Board,
-  },
-
-  data() {
-    return {
-      board: {
-        width: 500,
-        height: 500,
-      },
-    };
+    BoardSettings: BoardSettings,
   },
 };
 </script>

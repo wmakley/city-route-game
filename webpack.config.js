@@ -44,8 +44,8 @@ module.exports = function (env, argv) {
 					test: /\.css$/,
 					use: [
 						!isProduction
-						? 'vue-style-loader'
-						: MiniCssExtractPlugin.loader,
+							? 'vue-style-loader'
+							: MiniCssExtractPlugin.loader,
 						'css-loader'
 					]
 				}

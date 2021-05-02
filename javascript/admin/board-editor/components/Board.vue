@@ -4,20 +4,13 @@
 
 <script>
 export default {
-  props: {
-    board: {
-      width: Number,
-      height: Number,
+  computed: {
+    boardStyle() {
+      return {
+        width: `${this.$store.state.board.width}px`,
+        height: `${this.$store.state.board.height}px`,
+      };
     },
-  },
-
-  data() {
-    return {
-      boardStyle: {
-        width: this.board.width,
-        height: this.board.height,
-      },
-    };
   },
 };
 </script>
@@ -26,7 +19,8 @@ export default {
 .game-board {
   display: block;
   margin-top: 10px;
-  border: 2px solid blue;
-  border-radius: 2em;
+  border: 2px solid rgb(139, 74, 74);
+  border-radius: 10px;
+  background: beige;
 }
 </style>

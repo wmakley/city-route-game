@@ -6,14 +6,16 @@
 	<h1>Edit {{.Name}}</h1>
 
 	<div data-controller="edit-form">
-		<button
-			type="button"
-			data-edit-form-target="renameButton"
-			data-action="edit-form#toggle"
-			class="btn btn-link"
-			style="float:right; margin-top: -50px;">
-			Rename
-		</button>
+		<div class="float-end" style="margin-top: -50px;">
+			<button
+				type="button"
+				data-edit-form-target="renameButton"
+				data-action="edit-form#toggle"
+				class="btn btn-link">
+				Rename
+			</button>
+			<a href="/boards">Back</a>
+		</div>
 		<div data-edit-form-target="form" style="display:none;">
 			{{template "_form" .}}
 		</div>
