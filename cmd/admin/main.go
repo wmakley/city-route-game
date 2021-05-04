@@ -3,13 +3,11 @@ package main
 import (
 	"city-route-game/admin"
 	"city-route-game/domain"
-	"city-route-game/middleware"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -39,26 +37,7 @@ func main() {
 
 	admin.Init(db)
 
-	router := mux.NewRouter().StrictSlash(true)
-	router.Use(
-		middleware.RequestLogger,
-		middleware.RecoverPanic,
-		middleware.CSRFMitigation,
-		middleware.ParseFormData,
-		middleware.HtmlContentType,
-		middleware.PreventCache,
-	)
-
-	router.Handle("/", http.RedirectHandler("/boards", http.StatusFound))
-	router.HandleFunc("/boards", admin.BoardsIndexHandler).Methods("GET")
-	router.HandleFunc("/boards/new", admin.NewBoardHandler).Methods("GET")
-	router.HandleFunc("/boards", admin.CreateBoardHandler).Methods("POST")
-	router.HandleFunc("/boards/{id}", admin.GetBoardByIdHandler).Methods("GET")
-	router.HandleFunc("/boards/{id}/edit", admin.EditBoardHandler).Methods("GET")
-	router.HandleFunc("/boards/{id}", admin.UpdateBoardHandler).Methods("POST", "PATCH", "PUT")
-	router.HandleFunc("/boards/{id}", admin.DeleteBoardHandler).Methods("DELETE")
-
-	router.Handle("/{file}", http.FileServer(http.Dir("static/admin")))
+	router := admin.NewAdminRouter()
 
 	listenAddrFull := fmt.Sprintf("%s:%d", listenAddr, port)
 	fmt.Println("Listening on", listenAddrFull)

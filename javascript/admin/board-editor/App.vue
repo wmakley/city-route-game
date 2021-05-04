@@ -21,6 +21,10 @@ export default {
 		Inspector: Inspector,
 	},
 
+	mounted() {
+		this.$store.dispatch("fetchCities");
+	},
+
 	computed: {
 		showInspector() {
 			return this.$store.state.selectedItem !== null;

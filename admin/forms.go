@@ -105,3 +105,12 @@ func (f *BoardForm) IsValid(db *gorm.DB) bool {
 
 	return !f.HasError()
 }
+
+// JSON format in which cities will be posted from the board editor on create or update.
+// Cities are always valid as long as they relate to a board;
+// we let the user do whatever they want with them.
+type CityForm struct {
+	ID       uint            `json:"id"`
+	Name     string          `json:"name"`
+	Position domain.Position `json:"position"`
+}

@@ -96,8 +96,8 @@ type Position struct {
 
 type City struct {
 	Model
-	BoardID  uint   `gorm:"not null;uniqueIndex:uidx_city_board_id_name"`
-	Name     string `gorm:"not null;index:uidx_city_board_id_name"`
+	BoardID  uint   `gorm:"not null;index"`
+	Name     string `gorm:"not null"`
 	Position `json:"pos"`
 }
 

@@ -16,10 +16,29 @@ func SetCorsHeaders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding")
 }
 
+func SetJSONContentType(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+}
+
+func SetHTMLContentType(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+}
+
+func SetJavaScriptContentType(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+}
+
+// Write JSON to response body or panic
 func MustEncode(w io.Writer, v interface{}) {
 	if err := json.NewEncoder(w).Encode(v); err != nil {
 		panic(err)
 	}
+}
+
+// Write JSON to response body or panic, and set content type
+func MustReturnJson(w http.ResponseWriter, v interface{}) {
+	MustEncode(w, v)
+	SetJSONContentType(w)
 }
 
 func MustParse(filenames ...string) *template.Template {
@@ -81,6 +100,6 @@ func TurbolinksVisit(url string, clearCache bool, w http.ResponseWriter, r *http
 		clearCacheStep = "Turbolinks.clearCache();"
 	}
 
-	w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+	SetJavaScriptContentType(w)
 	fmt.Fprintf(w, `;(function(){%sTurbolinks.visit("%s");})();`, clearCacheStep, url)
 }

@@ -38,16 +38,10 @@ export default defineComponent({
 	},
 
 	methods: {
-		...mapMutations(["setSelectedCityId", "addCity"]),
+		...mapMutations(["setSelectedCityId"]),
 
-		deleteCity(id) {
-			if (
-				window.confirm(
-					"Are you sure you want to delete this city? There is no undo!"
-				)
-			) {
-				this.$store.commit("deleteCity", id);
-			}
+		addCity() {
+			this.$store.dispatch("createCity");
 		},
 	},
 });

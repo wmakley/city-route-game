@@ -10,7 +10,7 @@ export default {
 		city: {
 			id: Number,
 			name: String,
-			pos: {
+			position: {
 				x: Number,
 				y: Number,
 			},
@@ -21,8 +21,8 @@ export default {
 	computed: {
 		cityStyle() {
 			return {
-				left: this.city.pos.x + "px",
-				top: this.city.pos.y + "px",
+				left: this.city.position.x + "px",
+				top: this.city.position.y + "px",
 				zIndex: this.index + 100,
 			};
 		},

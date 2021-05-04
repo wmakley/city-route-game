@@ -20,6 +20,8 @@
 					<span class="input-group-text">Name</span>
 					<input
 						type="text"
+						id="city-inspector-name"
+						autofocus
 						class="form-control"
 						placeholder="City Name"
 						v-model="cityName"
@@ -74,7 +76,7 @@ export default {
 		},
 		cityPosX: {
 			get() {
-				return this.city.pos.x;
+				return this.city.position.x;
 			},
 			set(val) {
 				this.$store.commit({
@@ -86,7 +88,7 @@ export default {
 		},
 		cityPosY: {
 			get() {
-				return this.city.pos.y;
+				return this.city.position.y;
 			},
 			set(val) {
 				this.$store.commit({

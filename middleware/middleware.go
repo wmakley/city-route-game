@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"city-route-game/util"
 	"log"
 	"net/http"
 	"strings"
@@ -59,7 +60,7 @@ func JsonContentType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
 		if w.Header().Get("Content-Type") == "" {
-			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			util.SetJSONContentType(w)
 		}
 	})
 }
@@ -68,7 +69,7 @@ func HtmlContentType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
 		if w.Header().Get("Content-Type") == "" {
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			util.SetHTMLContentType(w)
 		}
 	})
 }
