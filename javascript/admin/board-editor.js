@@ -134,6 +134,22 @@ const store = createStore({
 			};
 		},
 
+		deleteCity(state, id) {
+			const idInt = toInt(id, null);
+			if (!idInt) {
+				throw new Error("id is not an integer");
+			}
+
+			const index = state.cities.findIndex(city => city.id === idInt);
+			if (index === -1) {
+				throw new Error(`City with ID ${idInt} not found!`);
+			}
+
+			// console.log(`Delete city ${idInt} at index: ${index}`)
+
+			state.cities.splice(index, 1);
+		},
+
 		setCityName(state, payload) {
 			const { id, name } = payload
 

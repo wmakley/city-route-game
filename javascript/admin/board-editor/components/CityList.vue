@@ -8,6 +8,13 @@
 				@click="setSelectedCityId(city.id)"
 			>
 				{{ city.name }}
+				<button
+					type="button"
+					class="btn btn-sm btn-outline-secondary"
+					@click="deleteCity(city.id)"
+				>
+					Delete
+				</button>
 			</li>
 		</ul>
 		<button
@@ -32,6 +39,16 @@ export default defineComponent({
 
 	methods: {
 		...mapMutations(["setSelectedCityId", "addCity"]),
+
+		deleteCity(id) {
+			if (
+				window.confirm(
+					"Are you sure you want to delete this city? There is no undo!"
+				)
+			) {
+				this.$store.commit("deleteCity", id);
+			}
+		},
 	},
 });
 </script>
