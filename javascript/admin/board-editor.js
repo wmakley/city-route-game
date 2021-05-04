@@ -94,6 +94,10 @@ const store = createStore({
 			state.board.height = heightNumber
 		},
 
+		clearSelectedItem(state) {
+			state.selectedItem = null;
+		},
+
 		setSelectedCityId(state, id) {
 			const idNum = toInt(id, null)
 			if (idNum === null) {
@@ -106,8 +110,6 @@ const store = createStore({
 				type: SelectedItemTypeCity,
 				id: idNum,
 			};
-
-			console.log("selected item: ", state.selectedItem)
 		},
 
 		setCityName(state, payload) {

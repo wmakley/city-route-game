@@ -2,7 +2,7 @@
 	<div class="board-editor">
 		<BoardSettings />
 		<CityManager />
-		<Inspector />
+		<Inspector v-if="showInspector" />
 		<Board />
 	</div>
 </template>
@@ -19,6 +19,12 @@ export default {
 		BoardSettings: BoardSettings,
 		CityManager: CityManager,
 		Inspector: Inspector,
+	},
+
+	computed: {
+		showInspector() {
+			return this.$store.state.selectedItem !== null;
+		},
 	},
 };
 </script>
