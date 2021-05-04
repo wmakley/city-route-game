@@ -30,7 +30,7 @@ func main() {
 		panic("Error connecting to database: " + err.Error())
 	}
 
-	err = db.AutoMigrate(&domain.Game{}, &domain.Board{}, &domain.Player{}, &domain.PlayerBoard{}, &domain.PlayerBonusToken{}, &domain.BonusToken{}, &domain.RouteBonusToken{}, &domain.City{}, &domain.CitySlot{}, &domain.Route{}, &domain.RouteSlot{})
+	err = db.AutoMigrate(domain.Models()...)
 	if err != nil {
 		panic("Error migrating database: " + err.Error())
 	}

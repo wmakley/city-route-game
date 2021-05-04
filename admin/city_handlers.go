@@ -17,8 +17,23 @@ func ListCitiesHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	boardId := vars["boardId"]
 
+	var board domain.Board
 	var cities []domain.City
-	err := db.Where("board_id = ?", boardId).Order("id").Find(&cities).Error
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		err := db.First(&board, boardId).Error
+		if err != nil {
+			return err
+		}
+
+		err = db.Where("board_id = ?", boardId).Order("id").Find(&cities).Error
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		handleDBErr(w, r, err)
 		return

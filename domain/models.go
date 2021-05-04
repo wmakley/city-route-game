@@ -4,6 +4,13 @@ import (
 	"time"
 )
 
+// Return an empty instance of every model for use with gorm Automigration
+func Models() []interface{} {
+	return []interface{}{
+		&Game{}, &Board{}, &Player{}, &PlayerBoard{}, &PlayerBonusToken{}, &BonusToken{}, &RouteBonusToken{}, &City{}, &CitySlot{}, &Route{}, &RouteSlot{},
+	}
+}
+
 // Simpler version of gorm.Model with JSON tags and without the DeletedAt column.
 // When we delete, we mean it!
 type Model struct {
