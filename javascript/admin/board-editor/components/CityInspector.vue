@@ -1,26 +1,57 @@
 <template>
 	<div v-if="city !== null" class="city-inspector">
 		<p>City Inspector:</p>
-		<input
-			type="text"
-			class="form-control"
-			placeholder="City Name"
-			v-model="cityName"
-		/>
-		<input
-			type="number"
-			class="form-control"
-			placeholder="X"
-			step="1"
-			v-model.number="cityPosX"
-		/>
-		<input
-			type="number"
-			class="form-control"
-			placeholder="Y"
-			step="1"
-			v-model.number="cityPosY"
-		/>
+		<div class="row g-2 mb-2">
+			<div class="col-sm-2 col-xs-3">
+				<div class="input-group">
+					<span class="input-group-text">ID</span>
+					<input
+						type="text"
+						class="form-control city-id"
+						:value="city.id"
+						readonly
+						aria-label="City ID"
+						size="6"
+					/>
+				</div>
+			</div>
+			<div class="col-sm-10 col-xs-9">
+				<div class="input-group">
+					<span class="input-group-text">Name</span>
+					<input
+						type="text"
+						class="form-control"
+						placeholder="City Name"
+						v-model="cityName"
+						aria-label="City Name"
+					/>
+				</div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col auto">
+				<div class="input-group">
+					<span class="input-group-text">X</span>
+					<input
+						type="number"
+						class="form-control"
+						placeholder="X"
+						step="1"
+						v-model.number="cityPosX"
+						aria-label="City X Position"
+					/>
+					<span class="input-group-text">Y</span>
+					<input
+						type="number"
+						class="form-control"
+						placeholder="Y"
+						step="1"
+						v-model.number="cityPosY"
+						aria-label="City Y Position"
+					/>
+				</div>
+			</div>
+		</div>
 	</div>
 </template>
 
