@@ -19,6 +19,8 @@ function toInt(maybeNumber, valueIfNaN) {
 	return numberAsInt
 }
 
+const SelectedItemTypeCity = "City";
+
 const store = createStore({
 	state() {
 		return {
@@ -27,7 +29,7 @@ const store = createStore({
 				height: 500
 			},
 
-			selectedCityId: null,
+			selectedItem: null,
 
 			cities: [
 				{
@@ -53,13 +55,26 @@ const store = createStore({
 	},
 
 	getters: {
-		selectedCity(state) {
-			if (state.selectedCityId === null) {
+		cityIsSelected(state) {
+			return state.selectedItem !== null && state.selectedItem.type === SelectedItemTypeCity;
+		},
+
+		selectedCityId(state, getters) {
+			if (!getters.cityIsSelected) {
+				return null;
+			}
+
+			return state.selectedItem.id;
+		},
+
+		selectedCity(state, getters) {
+			const id = getters.selectedCityId;
+			if (id === null) {
 				return null;
 			}
 
 			for (const city of state.cities) {
-				if (city.id === state.selectedCityId) {
+				if (city.id === state.selectedItem.id) {
 					return city;
 				}
 			}
@@ -81,7 +96,18 @@ const store = createStore({
 
 		setSelectedCityId(state, id) {
 			const idNum = toInt(id, null)
-			state.selectedCityId = idNum
+			if (idNum === null) {
+				state.selectedItem = null;
+				return;
+			}
+
+
+			state.selectedItem = {
+				type: SelectedItemTypeCity,
+				id: idNum,
+			};
+
+			console.log("selected item: ", state.selectedItem)
 		},
 
 		setCityName(state, payload) {
