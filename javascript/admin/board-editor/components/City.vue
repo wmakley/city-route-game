@@ -15,6 +15,7 @@ export default {
 				y: Number,
 			},
 		},
+		index: Number,
 	},
 
 	computed: {
@@ -22,7 +23,7 @@ export default {
 			return {
 				left: this.city.pos.x + "px",
 				top: this.city.pos.y + "px",
-				zIndex: this.city.id * 2 + 100,
+				zIndex: this.index + 100,
 			};
 		},
 
@@ -46,7 +47,7 @@ export default {
 <style scoped>
 .city {
 	display: block;
-	position: relative;
+	position: absolute;
 	width: 100px;
 	border: 2px solid blue;
 	border-radius: 10px;

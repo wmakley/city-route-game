@@ -10,7 +10,11 @@
 				{{ city.name }}
 			</li>
 		</ul>
-		<button type="button" class="btn btn-sm btn-outline-secondary">
+		<button
+			type="button"
+			class="btn btn-sm btn-outline-secondary"
+			@click="addCity"
+		>
 			+ City
 		</button>
 	</div>
@@ -27,7 +31,7 @@ export default defineComponent({
 	},
 
 	methods: {
-		...mapMutations(["setSelectedCityId"]),
+		...mapMutations(["setSelectedCityId", "addCity"]),
 	},
 });
 </script>

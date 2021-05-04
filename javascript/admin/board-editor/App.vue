@@ -1,7 +1,7 @@
 <template>
 	<div class="board-editor">
 		<BoardSettings />
-		<CityManager />
+		<CityList />
 		<Inspector v-if="showInspector" />
 		<Board />
 	</div>
@@ -10,14 +10,14 @@
 <script>
 import Board from "./components/Board.vue";
 import BoardSettings from "./components/BoardSettings.vue";
-import CityManager from "./components/CityManager.vue";
+import CityList from "./components/CityList.vue";
 import Inspector from "./components/Inspector.vue";
 
 export default {
 	components: {
 		Board: Board,
 		BoardSettings: BoardSettings,
-		CityManager: CityManager,
+		CityList: CityList,
 		Inspector: Inspector,
 	},
 

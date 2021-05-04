@@ -50,7 +50,9 @@ const store = createStore({
 						y: 50,
 					},
 				}
-			]
+			],
+
+			nextTempCityId: -1,
 		}
 	},
 
@@ -105,16 +107,36 @@ const store = createStore({
 				return;
 			}
 
-
 			state.selectedItem = {
 				type: SelectedItemTypeCity,
 				id: idNum,
 			};
 		},
 
+		addCity(state) {
+			const id = state.nextTempCityId;
+			state.nextTempCityId -= 1;
+
+			const city = {
+				id: id,
+				name: "New City",
+				slots: [],
+				pos: {
+					x: 1 + id * -2,
+					y: 1 + id * -2,
+				},
+			};
+
+			state.cities.push(city);
+			state.selectedItem = {
+				type: SelectedItemTypeCity,
+				id: id,
+			};
+		},
+
 		setCityName(state, payload) {
 			const { id, name } = payload
-			console.log("set city name:", id, name)
+
 			if (typeof name !== "string") {
 				throw new Error("city name is not a string")
 			}

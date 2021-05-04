@@ -1,7 +1,7 @@
 <template>
 	<div class="inspector">
 		<button class="btn btn-outline-secondary btn-sm float-end" @click="close">
-			x Close
+			&times; Close
 		</button>
 		<CityInspector v-if="cityIsSelected" :city="selectedCity" />
 	</div>
@@ -18,9 +18,6 @@ export default {
 
 	computed: {
 		...mapGetters(["cityIsSelected", "selectedCity"]),
-		isVisible() {
-			return this.$store.selectedItem !== null;
-		},
 	},
 
 	methods: {
@@ -40,5 +37,6 @@ export default {
 	padding: 10px;
 	background: white;
 	border-top: 2px solid gray;
+	z-index: 9999999;
 }
 </style>
