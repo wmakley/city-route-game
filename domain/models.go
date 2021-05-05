@@ -94,6 +94,7 @@ type Board struct {
 	GameID *uint  `json:"gameId" gorm:"index"`
 	Width  int    `json:"width" gorm:"not null;default:0"`
 	Height int    `json:"height" gorm:"not null;default:0"`
+	Cities []City `json:"cities"`
 }
 
 type Position struct {
@@ -103,9 +104,10 @@ type Position struct {
 
 type City struct {
 	Model
-	BoardID  uint   `gorm:"not null;index"`
-	Name     string `gorm:"not null"`
-	Position `json:"pos"`
+	BoardID   uint   `gorm:"not null;index"`
+	Name      string `gorm:"not null"`
+	Position  `json:"pos"`
+	CitySlots []CitySlot `json:"slots"`
 }
 
 type CitySlot struct {
@@ -121,6 +123,7 @@ type Route struct {
 	StartCityID uint `gorm:"not null;index"`
 	EndCityID   uint `gorm:"not null;index"`
 	Tavern      bool `gorm:"not null;default:0"`
+	RouteSlots  []RouteSlot
 }
 
 type RouteSlot struct {

@@ -2,15 +2,16 @@ package admin
 
 import (
 	"city-route-game/domain"
+	"city-route-game/httpassert"
 	"encoding/json"
 	"fmt"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func TestAdmin(t *testing.T) {
@@ -24,7 +25,9 @@ func TestAdmin(t *testing.T) {
 	}
 
 	var db *gorm.DB
-	db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
 		t.Fatal("Error connecting to database: ", err.Error())
 	}
@@ -42,19 +45,14 @@ func TestAdmin(t *testing.T) {
 	t.Run("getBoardByIdAsJson_includesCities", func(t *testing.T) {
 		board := testData.BoardWithCities
 
-		req := httptest.NewRequest("GET", fmt.Sprintf("http://localhost:8080/boards/%d", board.ID), nil)
+		req := httptest.NewRequest("GET", fmt.Sprintf("/boards/%d", board.ID), nil)
 		req.Header.Set("Accept", "application/json")
 
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		if w.Code != 200 {
-			t.Error("Expected response to be 200, but was:", w.Code, "body:", w.Body)
-		}
-
-		if !strings.HasPrefix(w.Header().Get("Content-Type"), "application/json") {
-			t.Fatal("Content type is not JSON")
-		}
+		httpassert.Success(t, w)
+		httpassert.JsonObject(t, w)
 
 		responseJson := domain.Board{}
 		if err := json.NewDecoder(w.Body).Decode(&responseJson); err != nil {
@@ -64,30 +62,50 @@ func TestAdmin(t *testing.T) {
 		if responseJson.ID != board.ID {
 			t.Error("response ID does not match board ID")
 		}
+
+		if len(responseJson.Cities) != len(board.Cities) {
+			t.Error("Cities were not returned")
+		}
 	})
 
 	t.Run("listCitiesByBoardId_boardNotFound", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "http://localhost:8080/boards/9999/cities/", nil)
+		req := httptest.NewRequest("GET", "/boards/9999/cities/", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		if w.Code != 404 {
-			t.Error("Expected response code to be 404 because board 9999 doesn't exist, but was:", w.Code, "body:", w.Body)
-		}
+		httpassert.NotFound(t, w)
 	})
 
 	t.Run("listCitiesByBoardId", func(t *testing.T) {
 		board := createTestBoard(t)
 
-		url := fmt.Sprintf("http://localhost:8080/boards/%d/cities/", board.ID)
+		url := fmt.Sprintf("/boards/%d/cities/", board.ID)
 		req := httptest.NewRequest("GET", url, nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		if w.Code != 200 {
-			t.Error("Response code is not 200, was:", w.Code, "body:", w.Body)
-		}
+		httpassert.Success(t, w)
+		httpassert.JsonArray(t, w)
 	})
+}
+
+type TestData struct {
+	EmptyBoard      domain.Board
+	BoardWithCities domain.Board
+}
+
+func insertTestData(t *testing.T) TestData {
+	emptyBoard := *createTestBoard(t)
+	boardWithCities := *createTestBoard(t)
+
+	for i := 0; i < 2; i++ {
+		createTestCity(t, boardWithCities.ID)
+	}
+
+	return TestData{
+		EmptyBoard:      emptyBoard,
+		BoardWithCities: boardWithCities,
+	}
 }
 
 var testBoardCounter = 0
@@ -103,17 +121,15 @@ func createTestBoard(t *testing.T) *domain.Board {
 	return &board
 }
 
-type TestData struct {
-	EmptyBoard      domain.Board
-	BoardWithCities domain.Board
-}
-
-func insertTestData(t *testing.T) TestData {
-	emptyBoard := *createTestBoard(t)
-	boardWithCities := *createTestBoard(t)
-
-	return TestData{
-		EmptyBoard:      emptyBoard,
-		BoardWithCities: boardWithCities,
+func createTestCity(t *testing.T, boardID uint) *domain.City {
+	city := domain.City{
+		BoardID: boardID,
+		Name:    "Test City",
 	}
+
+	if err := db.Save(&city).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	return &city
 }
