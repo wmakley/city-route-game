@@ -77,9 +77,13 @@ func GetBoardByIdHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ParseAndExecuteAdminTemplate(w, "boards/show", &board)
-	if err != nil {
-		panic(err)
+	if r.Header.Get("Accept") == "application/json" {
+		util.MustReturnJson(w, board)
+	} else {
+		err = ParseAndExecuteAdminTemplate(w, "boards/show", &board)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 

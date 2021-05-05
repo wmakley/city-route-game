@@ -35,7 +35,7 @@ func main() {
 		panic("Error migrating database: " + err.Error())
 	}
 
-	admin.Init(db)
+	admin.Init(db, "./templates")
 
 	router := admin.NewAdminRouter()
 

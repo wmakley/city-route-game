@@ -7,15 +7,17 @@ import (
 	"path"
 )
 
+const templateExtension = ".tmpl"
+
 func ParseAndExecuteAdminTemplate(w io.Writer, shortPath string, data interface{}, extraTemplates ...string) error {
-	primaryTemplateName := path.Base(shortPath) + ".tmpl"
-	primaryTemplateFullPath := toFullPath(shortPath)
+	primaryTemplateFullPath := TemplatePath(shortPath)
+	primaryTemplateName := path.Base(primaryTemplateFullPath)
 
 	allTemplatesToParse := make([]string, 2+len(extraTemplates))
-	allTemplatesToParse[0] = layoutTemplatePath
+	allTemplatesToParse[0] = TemplatePath("layout")
 	allTemplatesToParse[1] = primaryTemplateFullPath
 	for index, path := range extraTemplates {
-		allTemplatesToParse[index+2] = toFullPath(path)
+		allTemplatesToParse[index+2] = TemplatePath(path)
 	}
 
 	t, err := template.ParseFiles(allTemplatesToParse...)
@@ -33,8 +35,6 @@ func ParseAndExecuteAdminTemplate(w io.Writer, shortPath string, data interface{
 	return nil
 }
 
-const layoutTemplatePath = "./templates/admin/layout.tmpl"
-
-func toFullPath(shortPath string) string {
-	return "./templates/admin/" + shortPath + ".tmpl"
+func TemplatePath(shortPath string) string {
+	return templateRoot + "/admin/" + shortPath + templateExtension
 }

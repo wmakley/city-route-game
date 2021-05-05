@@ -17,7 +17,7 @@ type ErrorPage struct {
 }
 
 func genericNotFound(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("./templates/admin/error.tmpl")
+	t, err := template.ParseFiles(TemplatePath("error"))
 	if err != nil {
 		log.Printf("Showing generic error page due to template parse error: %+v\n", err)
 		http.NotFound(w, r)
@@ -30,14 +30,14 @@ func genericNotFound(w http.ResponseWriter, r *http.Request) {
 		Details:    "The resource you were looking for was not found on this server. :(",
 	}
 
-	util.MustExecute(t, w, &errorPage)
 	w.WriteHeader(http.StatusNotFound)
+	util.MustExecute(t, w, &errorPage)
 }
 
 func internalServerError(err error, w http.ResponseWriter, r *http.Request) {
 	log.Printf("Internal Server Error: %+v\n", err)
 
-	t, err := template.ParseFiles("./templates/error.tmpl")
+	t, err := template.ParseFiles(TemplatePath("error"))
 	if err != nil {
 		log.Printf("Showing generic error page due to template parse error: %+v\n", err)
 		http.Error(w, "Internal Server Error", 500)
@@ -50,14 +50,15 @@ func internalServerError(err error, w http.ResponseWriter, r *http.Request) {
 		Details:    "Something went wrong. :(",
 	}
 
-	util.MustExecute(t, w, &errorPage)
 	w.WriteHeader(http.StatusInternalServerError)
+	util.MustExecute(t, w, &errorPage)
 }
 
 func handleDBErr(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		genericNotFound(w, r)
 	} else {
+		log.Printf("Database error: %+v\n", err)
 		internalServerError(err, w, r)
 	}
 }
