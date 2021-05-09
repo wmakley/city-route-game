@@ -8,13 +8,20 @@ import (
 
 func Success(t *testing.T, resp *httptest.ResponseRecorder) {
 	if resp.Code != 200 {
-		t.Error("Status code is not 200")
+		t.Errorf("Status code is not 200 (was %d)", resp.Code)
 	}
 }
 
 func NotFound(t *testing.T, resp *httptest.ResponseRecorder) {
 	if resp.Code != 404 {
-		t.Error("Status code is not 404")
+		t.Errorf("Status code is not 404 (was %d)", resp.Code)
+	}
+}
+
+func HtmlContentType(t *testing.T, resp *httptest.ResponseRecorder) {
+	contentType := resp.Header().Get("Content-Type")
+	if contentType != "text/html; charset=utf-8" {
+		t.Error("Content-Type is not 'text/html; charset=utf-8'; was:", contentType)
 	}
 }
 
@@ -23,7 +30,14 @@ func NotFound(t *testing.T, resp *httptest.ResponseRecorder) {
 func JsonContentType(t *testing.T, resp *httptest.ResponseRecorder) {
 	contentType := resp.Header().Get("Content-Type")
 	if contentType != "application/json; charset=utf-8" {
-		t.Error("Content-Type is not 'application/json'")
+		t.Error("Content-Type is not 'application/json; charset=utf-8'; was:", contentType)
+	}
+}
+
+func JavascriptContentType(t *testing.T, resp *httptest.ResponseRecorder) {
+	contentType := resp.Header().Get("Content-Type")
+	if contentType != "text/javascript; charset=utf-8" {
+		t.Error("Content-Type is not 'text/javascript; charset=utf-8'; was:", contentType)
 	}
 }
 

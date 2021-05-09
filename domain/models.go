@@ -52,7 +52,6 @@ type PlayerBoard struct {
 	CityKeyLevel      int  `gorm:"not null;default:1"`
 	PrivilegeLevel    int  `gorm:"not null;default:1"`
 	PlateBonusTokenID *uint
-	PlateBonusToken   *BonusToken `gorm:"foreignKey:PlateBonusTokenID"`
 }
 
 // Join table between players and bonus tokens
@@ -94,7 +93,6 @@ type Board struct {
 	GameID *uint  `json:"gameId" gorm:"index"`
 	Width  int    `json:"width" gorm:"not null;default:0"`
 	Height int    `json:"height" gorm:"not null;default:0"`
-	Cities []City `json:"cities"`
 }
 
 type Position struct {

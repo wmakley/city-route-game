@@ -16,7 +16,7 @@ run: bin/admin
 	bin/admin $(SERVER_FLAGS)
 
 clean-db:
-	rm -f ./admin.sqlite
+	rm -fv ./data/*.sqlite
 
 watch:
 ifndef REFLEX

@@ -26,7 +26,7 @@ func NewAdminRouter() *mux.Router {
 	boards.HandleFunc("/", CreateBoardHandler).Methods("POST")
 	boards.HandleFunc("/{id}", GetBoardByIdHandler).Methods("GET")
 	boards.HandleFunc("/{id}/edit", EditBoardHandler).Methods("GET")
-	boards.HandleFunc("/{id}", UpdateBoardHandler).Methods("POST", "PATCH", "PUT")
+	boards.HandleFunc("/{id}", UpdateBoardHandler).Methods("POST", "PATCH")
 	boards.HandleFunc("/{id}", DeleteBoardHandler).Methods("DELETE")
 
 	cities := boards.PathPrefix("/{boardId}/cities").Subrouter()

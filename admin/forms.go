@@ -62,8 +62,10 @@ func (f *Form) HasError() bool {
 
 type BoardForm struct {
 	Form
-	ID   uint
-	Name string
+	ID     uint
+	Name   string
+	Width  int
+	Height int
 }
 
 func (f *BoardForm) NormalizeInputs() {
@@ -89,7 +91,7 @@ func (f *BoardForm) IsValid(db *gorm.DB) bool {
 		}
 
 		conditions := []interface{}{
-			"name = ?", f.Name,
+			f.Name,
 		}
 		if f.ID != 0 {
 			conditions = append(conditions, f.ID)

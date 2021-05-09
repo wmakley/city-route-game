@@ -13,11 +13,16 @@ import (
 func ParseFormData(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" || r.Method == "PUT" || r.Method == "PATCH" {
-			err := r.ParseMultipartForm(32 << 20) // 32 MB
-			if err != nil {
-				err = r.ParseForm()
+
+			// Do nothing if content type is JSON
+			if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+
+				err := r.ParseMultipartForm(32 << 20) // 32 MB
 				if err != nil {
-					panic(err)
+					err = r.ParseForm()
+					if err != nil {
+						panic(err)
+					}
 				}
 			}
 		}

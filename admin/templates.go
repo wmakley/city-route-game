@@ -1,10 +1,12 @@
 package admin
 
 import (
+	"bytes"
 	"html/template"
 	"io"
 	"log"
 	"path"
+	"strings"
 )
 
 const templateExtension = ".tmpl"
@@ -22,13 +24,32 @@ func ParseAndExecuteAdminTemplate(w io.Writer, shortPath string, data interface{
 
 	t, err := template.ParseFiles(allTemplatesToParse...)
 	if err != nil {
-		log.Println("Template Parse Error:", err.Error())
+		log.Printf("Template Parse Error: %+v\n", err)
 		return err
 	}
 
-	err = t.ExecuteTemplate(w, primaryTemplateName, data)
+	err = ExecuteTemplateBuffered(t, w, primaryTemplateName, data)
 	if err != nil {
-		log.Println("Template Execution Error:", err.Error())
+		log.Printf("Template Execution Error: %+v\n", err)
+		return err
+	}
+
+	return nil
+}
+
+// Store an executed template in a buffer before writing it to "w".
+// This allows you to gracefully recover from a template execution failure
+// during an http request, rather than send partial HTML.
+func ExecuteTemplateBuffered(t *template.Template, w io.Writer, templateName string, data interface{}) error {
+	buffer := bytes.NewBuffer(make([]byte, 0, 1024)) // 1K buffer (should hold output of smallest templates easily)
+
+	err := t.ExecuteTemplate(buffer, templateName, data)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(w, buffer)
+	if err != nil {
 		return err
 	}
 
@@ -36,5 +57,10 @@ func ParseAndExecuteAdminTemplate(w io.Writer, shortPath string, data interface{
 }
 
 func TemplatePath(shortPath string) string {
-	return templateRoot + "/admin/" + shortPath + templateExtension
+	hasExtension := strings.HasSuffix(shortPath, templateExtension)
+	if hasExtension {
+		return templateRoot + "/admin/" + shortPath
+	} else {
+		return templateRoot + "/admin/" + shortPath + templateExtension
+	}
 }

@@ -17,7 +17,7 @@ type ErrorPage struct {
 }
 
 func genericNotFound(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles(TemplatePath("error"))
+	t, err := template.ParseFiles(TemplatePath("error.tmpl"))
 	if err != nil {
 		log.Printf("Showing generic error page due to template parse error: %+v\n", err)
 		http.NotFound(w, r)
@@ -31,13 +31,17 @@ func genericNotFound(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNotFound)
-	util.MustExecute(t, w, &errorPage)
+	util.SetHTMLContentType(w)
+	err = ExecuteTemplateBuffered(t, w, "error.tmpl", &errorPage)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func internalServerError(err error, w http.ResponseWriter, r *http.Request) {
 	log.Printf("Internal Server Error: %+v\n", err)
 
-	t, err := template.ParseFiles(TemplatePath("error"))
+	t, err := template.ParseFiles(TemplatePath("error.tmpl"))
 	if err != nil {
 		log.Printf("Showing generic error page due to template parse error: %+v\n", err)
 		http.Error(w, "Internal Server Error", 500)
@@ -51,7 +55,11 @@ func internalServerError(err error, w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusInternalServerError)
-	util.MustExecute(t, w, &errorPage)
+	util.SetHTMLContentType(w)
+	err = ExecuteTemplateBuffered(t, w, "error.tmpl", &errorPage)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func handleDBErr(w http.ResponseWriter, r *http.Request, err error) {

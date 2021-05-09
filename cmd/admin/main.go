@@ -10,6 +10,7 @@ import (
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var (
@@ -21,18 +22,24 @@ func main() {
 
 	var listenAddr string
 	var port int
+	var migrate bool
 	flag.StringVar(&listenAddr, "listenaddr", "", "address to listen on (default \"\")")
 	flag.IntVar(&port, "port", 8080, "port to listen on (default 8080)")
+	flag.BoolVar(&migrate, "migrate", false, "Migrate database on startup")
 	flag.Parse()
 
-	db, err = gorm.Open(sqlite.Open("data/city-route-game.sqlite"), &gorm.Config{})
+	db, err = gorm.Open(sqlite.Open("data/city-route-game.sqlite"), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
 		panic("Error connecting to database: " + err.Error())
 	}
 
-	err = db.AutoMigrate(domain.Models()...)
-	if err != nil {
-		panic("Error migrating database: " + err.Error())
+	if migrate {
+		err = db.AutoMigrate(domain.Models()...)
+		if err != nil {
+			panic("Error migrating database: " + err.Error())
+		}
 	}
 
 	admin.Init(db, "./templates")

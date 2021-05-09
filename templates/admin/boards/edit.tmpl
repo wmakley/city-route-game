@@ -1,8 +1,10 @@
 {{template "layout" .}}
-{{define "title"}}Edit {{.Name}} - Admin{{end}}
+{{define "title"}}Edit {{.BoardForm.Name}} - Admin{{end}}
 
 {{define "content"}}
 <div class="container">
+
+	{{with .BoardForm}}
 	<h1>Edit {{.Name}}</h1>
 
 	<div data-controller="edit-form">
@@ -20,7 +22,8 @@
 			{{template "_form" .}}
 		</div>
 	</div>
+	{{end}}
 
-	<div id="board-editor" data-board-id="{{.ID}}"></div>
+	<div id="board-editor" data-board-id="{{.BoardForm.ID}}" data-board-json="{{.BoardJSON}}"></div>
 </div>
 {{end}}

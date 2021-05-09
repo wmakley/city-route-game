@@ -37,8 +37,8 @@ func MustEncode(w io.Writer, v interface{}) {
 
 // Write JSON to response body or panic, and set content type
 func MustReturnJson(w http.ResponseWriter, v interface{}) {
-	MustEncode(w, v)
 	SetJSONContentType(w)
+	MustEncode(w, v)
 }
 
 func MustParse(filenames ...string) *template.Template {
@@ -47,12 +47,6 @@ func MustParse(filenames ...string) *template.Template {
 		panic(err)
 	}
 	return t
-}
-
-func MustExecute(t *template.Template, w http.ResponseWriter, data interface{}) {
-	if err := t.Execute(w, data); err != nil {
-		panic(err)
-	}
 }
 
 type ErrorJson struct {
