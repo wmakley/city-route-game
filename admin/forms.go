@@ -11,9 +11,9 @@ import (
 var ErrInvalidForm = errors.New("invalid form error")
 
 type Form struct {
-	errors map[string][]string `schema:"-"`
-	Action string              `schema:"-"`
-	Method string              `schema:"_method"`
+	errors map[string][]string `schema:"-" json:"-"`
+	Action string              `schema:"-" json:"-"`
+	Method string              `schema:"_method" json:"-"`
 }
 
 func (f *Form) IsUpdate() bool {
@@ -64,11 +64,11 @@ func (f *Form) HasError() bool {
 }
 
 type BoardForm struct {
-	Form
-	ID     uint
-	Name   string
-	Width  int
-	Height int
+	Form   `json:"-"`
+	ID     uint   `json:"id"`
+	Name   string `json:"name"`
+	Width  int    `json:"width"`
+	Height int    `json:"height"`
 }
 
 func (f *BoardForm) NormalizeInputs() {

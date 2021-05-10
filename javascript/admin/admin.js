@@ -137,14 +137,11 @@ document.addEventListener("turbolinks:load", function() {
 
 	const boardEditorDiv = document.getElementById("board-editor")
 	if (boardEditorDiv) {
-		const boardId = parseInt(boardEditorDiv.getAttribute("data-board-id"), 10);
-		if (isNaN(boardId)) {
-			throw new Error("data-board-id is not a number");
-		}
+		const boardJson = JSON.parse(boardEditorDiv.getAttribute("data-board-json"))
 
 		import('./board-editor')
 			.then(({ default: createApp }) => {
-				boardEditor = createApp(boardId)
+				boardEditor = createApp(boardJson)
 				boardEditor.mount(boardEditorDiv)
 			})
 			.catch((error) => {

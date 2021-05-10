@@ -59,7 +59,11 @@ func CreateBoardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	board := domain.Board{Name: form.Name}
+	board := domain.Board{
+		Name:   form.Name,
+		Width:  800,
+		Height: 500,
+	}
 
 	if err := db.Save(&board).Error; err != nil {
 		internalServerError(err, w, r)
@@ -163,24 +167,29 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 
-		if r.FormValue("Name") == "" {
-			form.Name = board.Name
+		// Set missing fields to original values
+		if gotJson {
+			// Json is mostly used to update dimensions, so ignore name
+			if form.Name == "" {
+				form.Name = board.Name
+			}
+		} else {
+			// Html is mostly used to update the name
+			if r.FormValue("Width") == "" {
+				form.Width = board.Width
+			}
+			if r.FormValue("Height") == "" {
+				form.Height = board.Height
+			}
 		}
 
 		if !form.IsValid(db) {
 			return ErrInvalidForm
 		}
 
-		// Don't save fields that weren't provided in the request
-		if r.FormValue("Name") != "" {
-			board.Name = form.Name
-		}
-		if r.FormValue("Width") != "" {
-			board.Width = form.Width
-		}
-		if r.FormValue("Height") != "" {
-			board.Height = form.Height
-		}
+		board.Name = form.Name
+		board.Width = form.Width
+		board.Height = form.Height
 
 		err = tx.Save(&board).Error
 		if err != nil {

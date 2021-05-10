@@ -22,7 +22,7 @@ watch:
 ifndef REFLEX
 	$(error "reflex not found in PATH; you may need to run 'go get github.com/cespare/reflex' (be sure to do this outside of the api directory so it isn't added to go.mod)")
 endif
-	reflex -s -r '\.go$$' -R 'node_modules|javascript' make run
+	reflex -s -r '\.go$$' -R 'node_modules|javascript|static' make run
 
 test:
 	go test ./admin

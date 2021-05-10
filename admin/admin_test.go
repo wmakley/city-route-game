@@ -182,10 +182,12 @@ func Test_update_board_name_via_web_form(t *testing.T) {
 func Test_update_board_dimensions_via_json(t *testing.T) {
 	board := createTestBoard()
 
+	newWidth, newHeight := 1234, 343
+
 	payload := make(map[string]interface{})
-	payload["ID"] = board.ID
-	payload["Width"] = 1234
-	payload["Height"] = 343
+	payload["id"] = board.ID
+	payload["width"] = newWidth
+	payload["height"] = newHeight
 
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -204,6 +206,17 @@ func Test_update_board_dimensions_via_json(t *testing.T) {
 		t.Log("Body: ", w.Body)
 	}
 	httpassert.JsonContentType(t, w)
+
+	if err = db.Find(&board, board.ID).Error; err != nil {
+		panic(err)
+	}
+
+	if board.Width != newWidth {
+		t.Errorf("Board with was not updated (was %d)", board.Width)
+	}
+	if board.Height != newHeight {
+		t.Errorf("Board height was was not updated (was %d)", board.Height)
+	}
 }
 
 func TestListCitiesByBoardId_boardNotFound(t *testing.T) {

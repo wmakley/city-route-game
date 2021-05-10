@@ -21,39 +21,14 @@ function toInt(maybeNumber, valueIfNaN) {
 
 const SelectedItemTypeCity = "City";
 
-function storeWithBoardId(boardId) {
+function storeWithInitialBoard(initialBoard) {
 	return createStore({
 		state() {
 			return {
-				board: {
-					id: boardId,
-					width: 800,
-					height: 500
-				},
+				board: initialBoard,
+				cities: [],
 
 				selectedItem: null,
-
-				cities: [
-					// {
-					// 	id: 1,
-					// 	name: "Beautiful City",
-					// 	slots: [],
-					// 	position: {
-					// 		x: 10,
-					// 		y: 10,
-					// 	},
-					// },
-					// {
-					// 	id: 2,
-					// 	name: "Ugly City",
-					// 	slots: [],
-					// 	position: {
-					// 		x: 200,
-					// 		y: 50,
-					// 	},
-					// }
-				],
-
 				nextTempCityId: -1,
 			}
 		},
@@ -100,6 +75,12 @@ function storeWithBoardId(boardId) {
 			setBoardHeight(state, height) {
 				const heightNumber = toInt(height, 0)
 				state.board.height = heightNumber
+			},
+
+			persistBoardDimensionsSuccess(state, json) {
+				state.board.width = json.width
+				state.board.height = json.height
+				state.board.updatedAt = json.updatedAt
 			},
 
 			clearSelectedItem(state) {
@@ -180,6 +161,43 @@ function storeWithBoardId(boardId) {
 		},
 
 		actions: {
+			setBoardWidth({commit, dispatch}, width) {
+				commit("setBoardWidth", width)
+				return dispatch("persistBoardDimensions")
+			},
+
+			setBoardHeight({commit, dispatch}, height) {
+				commit("setBoardHeight", height)
+				return dispatch("persistBoardDimensions")
+			},
+
+			async persistBoardDimensions({commit, state}) {
+				const url = `/boards/${encodeURIComponent(state.board.id)}`;
+				const payload = JSON.stringify({
+					id: state.board.id,
+					name: state.board.name,
+					width: state.board.width,
+					height: state.board.height,
+				})
+
+				const response = await window.fetch(url, {
+					method: "PATCH",
+					body: payload,
+					headers: {
+						"Content-Type": "application/json; charset=utf-8",
+						"Accept": "application/json",
+						"X-Requested-With": "XMLHttpRequest",
+					}
+				});
+				if (!response.ok) {
+					const msg = await response.text()
+					throw new Error(`Error persisting board dimensions: ${msg}`);
+				}
+
+				const responseJson = await response.json()
+				commit("persistBoardDimensionsSuccess", responseJson)
+			},
+
 			async fetchCities({commit, state}) {
 				const url = `/boards/${encodeURIComponent(state.board.id)}/cities/`;
 
@@ -240,15 +258,15 @@ function storeWithBoardId(boardId) {
 
 				// console.log(`Delete city ${idInt} at index: ${index}`)
 
-				state.cities.splice(index, 1);
+				// state.cities.splice(index, 1);
 			},
 		}
 	});
 }
 
-export default (boardId) => {
+export default (board) => {
 	const app = createApp(App);
-	const store = storeWithBoardId(boardId);
+	const store = storeWithInitialBoard(board);
 	app.use(store);
 	return app;
 };
