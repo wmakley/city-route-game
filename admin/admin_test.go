@@ -228,7 +228,7 @@ func TestListCitiesByBoardId_boardNotFound(t *testing.T) {
 }
 
 func TestListCitiesByBoardId(t *testing.T) {
-	board := createTestBoard()
+	board := testData.BoardWithCities
 
 	url := fmt.Sprintf("/boards/%d/cities/", board.ID)
 	req := httptest.NewRequest("GET", url, nil)
@@ -237,24 +237,36 @@ func TestListCitiesByBoardId(t *testing.T) {
 
 	httpassert.Success(t, w)
 	httpassert.JsonArray(t, w)
+
+	responseJson := make([]domain.City, 0, len(testData.BoardWithCitiesCities))
+	if err := json.NewDecoder(w.Body).Decode(&responseJson); err != nil {
+		panic(err)
+	}
+
+	if len(responseJson) != len(testData.BoardWithCitiesCities) {
+		t.Error("number of cities in json doesn't match number of cities in board")
+	}
 }
 
 type TestData struct {
-	EmptyBoard      domain.Board
-	BoardWithCities domain.Board
+	EmptyBoard            domain.Board
+	BoardWithCities       domain.Board
+	BoardWithCitiesCities []domain.City
 }
 
 func insertTestData() TestData {
 	emptyBoard := *createTestBoard()
 	boardWithCities := *createTestBoard()
 
+	cities := make([]domain.City, 0, 2)
 	for i := 0; i < 2; i++ {
-		createTestCity(boardWithCities.ID)
+		cities = append(cities, *createTestCity(boardWithCities.ID))
 	}
 
 	return TestData{
-		EmptyBoard:      emptyBoard,
-		BoardWithCities: boardWithCities,
+		EmptyBoard:            emptyBoard,
+		BoardWithCities:       boardWithCities,
+		BoardWithCitiesCities: cities,
 	}
 }
 
