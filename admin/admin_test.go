@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 	}
 
 	db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn),
+		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {
 		panic("Error connecting to database: " + err.Error())
@@ -47,7 +47,7 @@ func TestMain(m *testing.M) {
 
 	Init(db, "../templates")
 	testData = insertTestData()
-	router = NewAdminRouter()
+	router = NewAdminRouter(false)
 
 	os.Exit(m.Run())
 }
@@ -79,7 +79,10 @@ func TestCreateBoard(t *testing.T) {
 	formData.Add("Name", fmt.Sprintf("Test Board %d", testBoardCounter))
 	testBoardCounter++
 
-	req := httptest.NewRequest("POST", "/boards/", strings.NewReader(formData.Encode()))
+	encodedFormData := formData.Encode()
+	// t.Log("Encoded Form Data:", encodedFormData)
+
+	req := httptest.NewRequest("POST", "/boards/", strings.NewReader(encodedFormData))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
 	req.Header.Set("Accept", "text/html, text/javascript")
 	req.Header.Set("X-Requested-With", "XMLHttpRequest")
@@ -88,7 +91,7 @@ func TestCreateBoard(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	httpassert.Success(t, w)
-	httpassert.HtmlContentType(t, w)
+	httpassert.JavascriptContentType(t, w)
 }
 
 func TestGetBoardById_as_html(t *testing.T) {
@@ -179,11 +182,12 @@ func Test_update_board_name_via_web_form(t *testing.T) {
 func Test_update_board_dimensions_via_json(t *testing.T) {
 	board := createTestBoard()
 
-	formData := make(map[string]int)
-	formData["Width"] = 1234
-	formData["Height"] = 343
+	payload := make(map[string]interface{})
+	payload["ID"] = board.ID
+	payload["Width"] = 1234
+	payload["Height"] = 343
 
-	body, err := json.Marshal(formData)
+	body, err := json.Marshal(payload)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,9 +200,9 @@ func Test_update_board_dimensions_via_json(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	t.Log("Body:", w.Body.String())
-
-	httpassert.Success(t, w)
+	if !httpassert.Success(t, w) {
+		t.Log("Body: ", w.Body)
+	}
 	httpassert.JsonContentType(t, w)
 }
 

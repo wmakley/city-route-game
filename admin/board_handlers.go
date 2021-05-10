@@ -4,6 +4,7 @@ import (
 	"city-route-game/domain"
 	"city-route-game/util"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -134,27 +135,40 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
+	accept := r.Header.Get("Accept")
+	gotJson := strings.HasPrefix(r.Header.Get("Content-Type"), "application/json")
+	respondWithJson := strings.HasPrefix(accept, "application/json")
+
 	var form BoardForm
 
-	err := formDecoder.Decode(&form, r.PostForm)
-	if err != nil {
-		internalServerError(err, w, r)
-		return
+	if gotJson {
+		err := json.NewDecoder(r.Body).Decode(&form)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		err := formDecoder.Decode(&form, r.PostForm)
+		if err != nil {
+			internalServerError(err, w, r)
+			return
+		}
 	}
 
 	form.NormalizeInputs()
 
-	if !form.IsValid(db) {
-		w.WriteHeader(http.StatusBadRequest)
-		ParseAndExecuteAdminTemplate(w, "boards/edit", &form, "boards/_form")
-		return
-	}
-
 	var board domain.Board
-	err = db.Transaction(func(tx *gorm.DB) error {
+	err := db.Transaction(func(tx *gorm.DB) error {
 		err := tx.First(&board, key).Error
 		if err != nil {
 			return err
+		}
+
+		if r.FormValue("Name") == "" {
+			form.Name = board.Name
+		}
+
+		if !form.IsValid(db) {
+			return ErrInvalidForm
 		}
 
 		// Don't save fields that weren't provided in the request
@@ -177,22 +191,46 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		handleDBErr(w, r, err)
+		if errors.Is(err, ErrInvalidForm) {
+			if respondWithJson {
+				json := make(map[string]interface{})
+				json["board"] = board
+				json["errors"] = form.Errors()
+
+				util.SetJSONContentType(w)
+				w.WriteHeader(http.StatusBadRequest)
+				util.MustEncode(w, json)
+			} else {
+				boardJson, err := json.Marshal(board)
+				if err != nil {
+					panic(err)
+				}
+
+				invalidEditBoardPage := EditBoardPage{
+					BoardForm: form,
+					BoardJSON: string(boardJson),
+				}
+
+				util.SetHTMLContentType(w)
+				w.WriteHeader(http.StatusBadRequest)
+				err = ParseAndExecuteAdminTemplate(w, "boards/edit", &invalidEditBoardPage, "boards/_form")
+				if err != nil {
+					panic(err)
+				}
+			}
+		} else {
+			handleDBErr(w, r, err)
+		}
 		return
 	}
 
-	accept := r.Header.Get("Accept")
-	if strings.Contains(accept, "application/json") {
+	if respondWithJson {
 		util.SetJSONContentType(w)
 		util.MustEncode(w, &board)
-	} else if strings.Contains(accept, "text/javascript") {
+	} else {
 		// Call a global function in the admin js directly
 		util.SetJavaScriptContentType(w)
 		fmt.Fprintf(w, ";updateFormSucceeded();")
-	} else {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Unsupported content-type: %s", accept)
 	}
 }
 

@@ -7,15 +7,17 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func NewAdminRouter() *mux.Router {
+func NewAdminRouter(logRequests bool) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
+	if logRequests {
+		router.Use(middleware.RequestLogger)
+	}
 	router.Use(
-		middleware.RequestLogger,
 		middleware.RecoverPanic,
 		middleware.CSRFMitigation,
-	// middleware.ParseFormData,
-	// middleware.HtmlContentType,
-	// middleware.PreventCache,
+		middleware.ParseFormData,
+		middleware.HtmlContentType,
+		middleware.PreventCache,
 	)
 
 	router.Handle("/", http.RedirectHandler("/boards/", http.StatusFound))

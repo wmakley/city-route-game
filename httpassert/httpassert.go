@@ -6,10 +6,12 @@ import (
 	"testing"
 )
 
-func Success(t *testing.T, resp *httptest.ResponseRecorder) {
+func Success(t *testing.T, resp *httptest.ResponseRecorder) bool {
 	if resp.Code != 200 {
 		t.Errorf("Status code is not 200 (was %d)", resp.Code)
+		return false
 	}
+	return true
 }
 
 func NotFound(t *testing.T, resp *httptest.ResponseRecorder) {

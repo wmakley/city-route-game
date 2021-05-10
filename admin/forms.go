@@ -2,10 +2,13 @@ package admin
 
 import (
 	"city-route-game/domain"
+	"errors"
 	"strings"
 
 	"gorm.io/gorm"
 )
+
+var ErrInvalidForm = errors.New("invalid form error")
 
 type Form struct {
 	errors map[string][]string `schema:"-"`

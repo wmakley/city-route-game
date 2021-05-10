@@ -44,7 +44,7 @@ func main() {
 
 	admin.Init(db, "./templates")
 
-	router := admin.NewAdminRouter()
+	router := admin.NewAdminRouter(true)
 
 	listenAddrFull := fmt.Sprintf("%s:%d", listenAddr, port)
 	fmt.Println("Listening on", listenAddrFull)
