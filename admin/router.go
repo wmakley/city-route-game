@@ -13,12 +13,12 @@ func NewAdminRouter() *mux.Router {
 		middleware.RequestLogger,
 		middleware.RecoverPanic,
 		middleware.CSRFMitigation,
-		middleware.ParseFormData,
-		middleware.HtmlContentType,
-		middleware.PreventCache,
+	// middleware.ParseFormData,
+	// middleware.HtmlContentType,
+	// middleware.PreventCache,
 	)
 
-	router.Handle("/", http.RedirectHandler("/boards", http.StatusFound))
+	router.Handle("/", http.RedirectHandler("/boards/", http.StatusFound))
 
 	boards := router.PathPrefix("/boards").Subrouter()
 	boards.HandleFunc("/", BoardsIndexHandler).Methods("GET")

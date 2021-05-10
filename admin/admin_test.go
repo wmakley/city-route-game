@@ -82,6 +82,7 @@ func TestCreateBoard(t *testing.T) {
 	req := httptest.NewRequest("POST", "/boards/", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
 	req.Header.Set("Accept", "text/html, text/javascript")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -133,7 +134,7 @@ func TestGetBoardById_asJson(t *testing.T) {
 	}
 }
 
-func TestEditBoardc(t *testing.T) {
+func TestEditBoard(t *testing.T) {
 	board := testData.BoardWithCities
 	req := httptest.NewRequest("GET", fmt.Sprintf("/boards/%d/edit", board.ID), nil)
 	w := httptest.NewRecorder()
@@ -156,6 +157,7 @@ func Test_update_board_name_via_web_form(t *testing.T) {
 	req := httptest.NewRequest("POST", fmt.Sprintf("/boards/%d", board.ID), strings.NewReader(postData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
 	req.Header.Set("Accept", "text/javascript")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -189,6 +191,7 @@ func Test_update_board_dimensions_via_json(t *testing.T) {
 	req := httptest.NewRequest("PATCH", fmt.Sprintf("/boards/%d", board.ID), bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
