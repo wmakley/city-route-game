@@ -2,15 +2,11 @@
 	<div class="city-manager position-fixed end-0">
 		<h3>Cities</h3>
 		<ul class="list-unstyled">
-			<li
-				v-for="city in cities"
-				:key="city.id"
-				@click="setSelectedCityId(city.id)"
-			>
-				{{ city.name }}
+			<li v-for="city in cities" :key="city.id">
+				<span @click="setSelectedCityId(city.id)">{{ city.name }}</span>
 				<button
 					type="button"
-					class="btn btn-sm btn-outline-secondary"
+					class="btn btn-sm btn-outline-secondary delete-city"
 					@click="deleteCity(city.id)"
 				>
 					Delete
@@ -45,6 +41,12 @@ export default defineComponent({
 				name: "New City",
 			});
 		},
+
+		deleteCity(id) {
+			if (confirm("Are you sure you want to delete this city?")) {
+				this.$store.dispatch("deleteCity", id);
+			}
+		},
 	},
 });
 </script>
@@ -65,5 +67,9 @@ export default defineComponent({
 
 .city-manager li {
 	cursor: pointer;
+}
+
+button.delete-city {
+	margin-left: 10px;
 }
 </style>

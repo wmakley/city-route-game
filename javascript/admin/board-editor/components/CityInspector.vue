@@ -25,6 +25,7 @@
 						class="form-control"
 						placeholder="City Name"
 						v-model="cityName"
+						@blur="persistCity"
 						aria-label="City Name"
 					/>
 				</div>
@@ -61,13 +62,19 @@
 export default {
 	props: ["city"],
 
+	methods: {
+		persistCity() {
+			this.$store.dispatch("persistCity", this.city.id);
+		},
+	},
+
 	computed: {
 		cityName: {
 			get() {
 				return this.city.name;
 			},
 			set(value) {
-				this.$store.dispatch("setCityName", {
+				this.$store.commit("setCityName", {
 					id: this.city.id,
 					name: value,
 				});

@@ -108,21 +108,14 @@ function storeWithInitialBoard(initialBoard) {
 				};
 			},
 
-			// deleteCity(state, id) {
-			// 	const idInt = toInt(id, null);
-			// 	if (!idInt) {
-			// 		throw new Error("id is not an integer");
-			// 	}
+			deleteCity(state, id) {
+				const index = state.cities.findIndex(city => city.id === id);
+				if (index < 0) {
+					throw new Error(`City with ID ${id} not found!`);
+				}
 
-			// 	const index = state.cities.findIndex(city => city.id === idInt);
-			// 	if (index === -1) {
-			// 		throw new Error(`City with ID ${idInt} not found!`);
-			// 	}
-
-			// 	// console.log(`Delete city ${idInt} at index: ${index}`)
-
-			// 	state.cities.splice(index, 1);
-			// },
+				state.cities.splice(index, 1);
+			},
 
 			setCityName(state, { id, name }) {
 				if (typeof name !== "string") {
@@ -225,8 +218,8 @@ function storeWithInitialBoard(initialBoard) {
 			async createCity({commit, state}, city) {
 				if (!city.position) {
 					city.position = {
-						x: state.cities.length + 10,
-						y: state.cities.length + 10,
+						x: state.cities.length * 5,
+						y: state.cities.length * 5,
 					}
 				}
 
@@ -305,20 +298,27 @@ function storeWithInitialBoard(initialBoard) {
 				commit("persistCitySuccess", updatedCity)
 			},
 
-			deleteCity({commit}, id) {
-				const idInt = toInt(id, null);
-				if (!idInt) {
-					throw new Error("id is not an integer");
+			async deleteCity({commit, state}, id) {
+				const index = state.cities.findIndex(city => city.id === id);
+				if (index < 0) {
+					throw new Error(`City with ID ${id} not found!`);
 				}
 
-				const index = state.cities.findIndex(city => city.id === idInt);
-				if (index === -1) {
-					throw new Error(`City with ID ${idInt} not found!`);
+				const url = `/boards/${encodeURIComponent(state.board.id)}/cities/${encodeURIComponent(id)}`;
+
+				const response = await window.fetch(url, {
+					method: "DELETE",
+					headers: {
+						"X-Requested-With": "XMLHttpRequest",
+					}
+				});
+
+				if (!response.ok) {
+					const body = await response.text();
+					window.alert(`Error persisting city: ${body}`);
 				}
 
-				// console.log(`Delete city ${idInt} at index: ${index}`)
-
-				// state.cities.splice(index, 1);
+				commit("deleteCity", id)
 			},
 		}
 	});
