@@ -279,6 +279,56 @@ func TestCreateCity(t *testing.T) {
 	httpassert.JsonContentType(t, w)
 }
 
+func TestUpdateCity(t *testing.T) {
+	board := createTestBoard()
+	city := createTestCity(board.ID)
+	url := fmt.Sprintf("/boards/%d/cities/%d", board.ID, city.ID)
+
+	newName := "New City Name"
+	newX := 123
+	newY := 432
+	form := CityForm{
+		Name: newName,
+		Position: domain.Position{
+			X: newX,
+			Y: newY,
+		},
+	}
+
+	body, err := json.Marshal(&form)
+	if err != nil {
+		panic(err)
+	}
+
+	req := httptest.NewRequest("PUT", url, bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
+	req.Header.Set("Accept", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if !httpassert.Success(t, w) {
+		t.Log("Body:", w.Body)
+	}
+	httpassert.JsonContentType(t, w)
+
+	var updatedCity domain.City
+	if err := json.NewDecoder(w.Body).Decode(&updatedCity); err != nil {
+		panic(err)
+	}
+
+	if updatedCity.Name != newName {
+		t.Error("City Name was not updated")
+	}
+	if updatedCity.Position.X != newX {
+		t.Error("City Position X was not updated")
+	}
+	if updatedCity.Position.Y != newY {
+		t.Error("City Position Y was not updated")
+	}
+}
+
 func TestDeleteCity(t *testing.T) {
 	board := createTestBoard()
 	city := createTestCity(board.ID)

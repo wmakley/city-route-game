@@ -20,7 +20,7 @@
 		<button
 			type="button"
 			class="btn btn-sm btn-outline-secondary"
-			@click="addCity"
+			@click="createCity"
 		>
 			+ City
 		</button>
@@ -40,8 +40,10 @@ export default defineComponent({
 	methods: {
 		...mapMutations(["setSelectedCityId"]),
 
-		addCity() {
-			this.$store.dispatch("createCity");
+		createCity() {
+			this.$store.dispatch("createCity", {
+				name: "New City",
+			});
 		},
 	},
 });

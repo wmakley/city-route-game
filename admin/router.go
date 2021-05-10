@@ -34,6 +34,7 @@ func NewAdminRouter(logRequests bool) *mux.Router {
 	cities := boards.PathPrefix("/{boardId}/cities").Subrouter()
 	cities.HandleFunc("/", ListCitiesHandler).Methods("GET")
 	cities.HandleFunc("/", CreateCityHandler).Methods("POST")
+	cities.HandleFunc("/{id}", UpdateCityHandler).Methods("PUT")
 	cities.HandleFunc("/{id}", DeleteCityHandler).Methods("DELETE")
 
 	router.Handle("/{file}", http.FileServer(http.Dir("static/admin")))

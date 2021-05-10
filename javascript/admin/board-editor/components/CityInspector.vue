@@ -67,8 +67,7 @@ export default {
 				return this.city.name;
 			},
 			set(value) {
-				this.$store.commit({
-					type: "setCityName",
+				this.$store.dispatch("setCityName", {
 					id: this.city.id,
 					name: value,
 				});
@@ -79,8 +78,7 @@ export default {
 				return this.city.position.x;
 			},
 			set(val) {
-				this.$store.commit({
-					type: "setCityPosX",
+				this.$store.dispatch("setCityPosX", {
 					id: this.city.id,
 					x: val,
 				});
@@ -91,8 +89,7 @@ export default {
 				return this.city.position.y;
 			},
 			set(val) {
-				this.$store.commit({
-					type: "setCityPosY",
+				this.$store.dispatch("setCityPosY", {
 					id: this.city.id,
 					y: val,
 				});

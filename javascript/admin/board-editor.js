@@ -124,9 +124,7 @@ function storeWithInitialBoard(initialBoard) {
 			// 	state.cities.splice(index, 1);
 			// },
 
-			setCityName(state, payload) {
-				const { id, name } = payload
-
+			setCityName(state, { id, name }) {
 				if (typeof name !== "string") {
 					throw new Error("city name is not a string")
 				}
@@ -139,8 +137,7 @@ function storeWithInitialBoard(initialBoard) {
 				city.name = name
 			},
 
-			setCityPosX(state, payload) {
-				const {id, x} = payload
+			setCityPosX(state, {id, x}) {
 				const city = state.cities.find(c => c.id === id)
 				if (!city) {
 					throw new Error(`City ${id} not found`)
@@ -149,14 +146,23 @@ function storeWithInitialBoard(initialBoard) {
 				city.position.x = x
 			},
 
-			setCityPosY(state, payload) {
-				const {id, y} = payload
+			setCityPosY(state, {id, y}) {
 				const city = state.cities.find(c => c.id === id)
 				if (!city) {
 					throw new Error(`City ${id} not found`)
 				}
 
 				city.position.y = y
+			},
+
+			persistCitySuccess(state, updatedCity) {
+				const cityIndex = state.cities.findIndex(c => c.id === updatedCity.id)
+
+				if (cityIndex >= 0) {
+					state.cities[cityIndex] = updatedCity
+				} else {
+					throw new Error(`City with ID ${updatedCity.id} not found!`)
+				}
 			}
 		},
 
@@ -216,22 +222,24 @@ function storeWithInitialBoard(initialBoard) {
 				commit("fetchCitiesSuccess", cities);
 			},
 
-			async createCity({commit, state}) {
-				const city = {
-					name: "New City",
-					position: {
-						x: 0,
-						y: 0,
-					},
-				};
+			async createCity({commit, state}, city) {
+				if (!city.position) {
+					city.position = {
+						x: state.cities.length + 10,
+						y: state.cities.length + 10,
+					}
+				}
 
+				const body = JSON.stringify(city)
 				const url = `/boards/${encodeURIComponent(state.board.id)}/cities/`;
 
 				const response = await window.fetch(url, {
 					method: "POST",
-					body: JSON.stringify(city),
+					body: body,
 					headers: {
-						"Accept": "application/json"
+						"Content-Type": "application/json; charset=utf-8",
+						"Accept": "application/json",
+						"X-Requested-With": "XMLHttpRequest",
 					}
 				});
 
@@ -243,6 +251,58 @@ function storeWithInitialBoard(initialBoard) {
 				const createdCity = await response.json();
 
 				commit("createCitySuccess", createdCity);
+			},
+
+			setCityName({commit, dispatch}, payload) {
+				commit("setCityName", payload)
+				return dispatch("persistCity", payload.id)
+			},
+
+			setCityPosX({commit, dispatch}, payload) {
+				commit("setCityPosX", payload)
+				return dispatch("persistCity", payload.id)
+			},
+
+			setCityPosY({ commit, dispatch }, payload) {
+				commit("setCityPosY", payload)
+				return dispatch("persistCity", payload.id)
+			},
+
+			async persistCity({ commit, state }, id) {
+				const city = state.cities.find(city => city.id === id);
+				if (!city) {
+					throw new Error(`City with ID ${id} not found!`)
+				}
+
+				const payload = JSON.stringify({
+					id: city.id,
+					name: city.name,
+					position: {
+						x: city.position.x,
+						y: city.position.y
+					}
+				});
+
+				const url = `/boards/${encodeURIComponent(state.board.id)}/cities/${encodeURIComponent(id)}`;
+
+				const response = await window.fetch(url, {
+					method: "PUT",
+					body: payload,
+					headers: {
+						"Content-Type": "application/json; charset=utf-8",
+						"Accept": "application/json",
+						"X-Requested-With": "XMLHttpRequest",
+					}
+				});
+
+				if (!response.ok) {
+					const body = await response.text();
+					throw new Error(`Error persisting city: ${body}`);
+				}
+
+				const updatedCity = await response.json();
+
+				commit("persistCitySuccess", updatedCity)
 			},
 
 			deleteCity({commit}, id) {
