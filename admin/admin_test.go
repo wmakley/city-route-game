@@ -6,6 +6,7 @@ import (
 	"city-route-game/httpassert"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
@@ -245,6 +246,62 @@ func TestListCitiesByBoardId(t *testing.T) {
 
 	if len(responseJson) != len(testData.BoardWithCitiesCities) {
 		t.Error("number of cities in json doesn't match number of cities in board")
+	}
+}
+
+func TestCreateCity(t *testing.T) {
+	board := createTestBoard()
+	url := fmt.Sprintf("/boards/%d/cities/", board.ID)
+	city := CityForm{
+		Name: "Test City",
+		Position: domain.Position{
+			X: 10,
+			Y: 20,
+		},
+	}
+
+	body, err := json.Marshal(&city)
+	if err != nil {
+		panic(err)
+	}
+
+	req := httptest.NewRequest("POST", url, bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
+	req.Header.Set("Accept", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if !httpassert.Success(t, w) {
+		t.Log("Body:", w.Body)
+	}
+	httpassert.JsonContentType(t, w)
+}
+
+func TestDeleteCity(t *testing.T) {
+	board := createTestBoard()
+	city := createTestCity(board.ID)
+
+	url := fmt.Sprintf("/boards/%d/cities/%d", board.ID, city.ID)
+	req := httptest.NewRequest("DELETE", url, nil)
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNoContent {
+		t.Errorf("Response code is not 204 (is %d)", w.Code)
+		t.Log("Body:", w.Body)
+	}
+
+	cities := make([]domain.City, 0)
+	if err := db.Find(&cities, city.ID).Error; err != nil {
+		panic(err)
+	}
+
+	if len(cities) != 0 {
+		t.Error("City was not deleted")
 	}
 }
 

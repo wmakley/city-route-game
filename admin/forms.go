@@ -119,3 +119,11 @@ type CityForm struct {
 	Name     string          `json:"name"`
 	Position domain.Position `json:"position"`
 }
+
+func (f *CityForm) NormalizeInputs() {
+	f.Name = strings.TrimSpace(f.Name)
+}
+
+func (f *CityForm) IsValid() bool {
+	return true
+}

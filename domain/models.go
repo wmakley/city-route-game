@@ -104,7 +104,7 @@ type City struct {
 	Model
 	BoardID   uint   `gorm:"not null;index"`
 	Name      string `gorm:"not null"`
-	Position  `json:"pos"`
+	Position  `json:"position"`
 	CitySlots []CitySlot `json:"slots"`
 }
 

@@ -43,8 +43,6 @@ func ListCitiesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateCityHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("CreateCityHandler")
-
 	vars := mux.Vars(r)
 	boardId := vars["boardId"]
 
@@ -55,6 +53,8 @@ func CreateCityHandler(w http.ResponseWriter, r *http.Request) {
 	if err := decoder.Decode(&cityForm); err != nil {
 		panic(err)
 	}
+
+	cityForm.NormalizeInputs()
 
 	var city domain.City
 
@@ -83,4 +83,31 @@ func CreateCityHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.MustReturnJson(w, &city)
+}
+
+func DeleteCityHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	boardId := vars["boardId"]
+	cityId := vars["id"]
+
+	var city domain.City
+	err := db.Transaction(func(tx *gorm.DB) error {
+		err := db.First(&city, "board_id = ? AND id = ?", boardId, cityId).Error
+		if err != nil {
+			return err
+		}
+
+		err = db.Delete(&city).Error
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		handleDBErr(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
