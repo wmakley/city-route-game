@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -245,19 +247,15 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 
 func DeleteBoardHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	key := vars["id"]
+	id, err := strconv.ParseUint(vars["id"], 10, 0)
+	if err != nil {
+		log.Println("Bad ID:", vars["id"])
+		http.NotFound(w, r)
+		return
+	}
 
-	err := db.Transaction(func(tx *gorm.DB) error {
-		result := tx.Delete(&domain.Board{}, key)
-		if result.Error != nil {
-			return result.Error
-		}
-
-		if result.RowsAffected == 0 {
-			return gorm.ErrRecordNotFound
-		}
-
-		return nil
+	err = db.Transaction(func(tx *gorm.DB) error {
+		return domain.DeleteBoard(tx, uint(id))
 	})
 
 	if err != nil {
