@@ -1,5 +1,12 @@
 <template>
-	<div :class="cssClasses" :style="cityStyle" @click="selectCity">
+	<div
+		:class="cssClasses"
+		:style="cityStyle"
+		draggable="true"
+		@click="selectCity"
+		@dragstart="dragstart"
+		@dragend="dragend"
+	>
 		{{ city.name }}
 	</div>
 </template>
@@ -18,6 +25,30 @@ export default {
 		index: Number,
 	},
 
+	data() {
+		return {
+			isDragging: false,
+		};
+	},
+
+	methods: {
+		dragstart(event) {
+			event.dataTransfer.setData("text/cityid", this.city.id.toString());
+			event.dataTransfer.effectAllowed = "move";
+			// console.log("dragstart", event);
+			this.isDragging = true;
+		},
+
+		dragend(event) {
+			// console.log("dragend", event);
+			this.isDragging = false;
+		},
+
+		selectCity() {
+			this.$store.commit("setSelectedCityId", this.city.id);
+		},
+	},
+
 	computed: {
 		cityStyle() {
 			return {
@@ -28,17 +59,17 @@ export default {
 		},
 
 		cssClasses() {
-			if (this.$store.getters.selectedCityId === this.city.id) {
-				return "city selected";
-			} else {
-				return "city";
-			}
-		},
-	},
+			let classes = "city";
 
-	methods: {
-		selectCity() {
-			this.$store.commit("setSelectedCityId", this.city.id);
+			if (this.$store.getters.selectedCityId === this.city.id) {
+				classes += " selected";
+			}
+
+			if (this.isDragging) {
+				classes += " dragging";
+			}
+
+			return classes;
 		},
 	},
 };
@@ -48,7 +79,8 @@ export default {
 .city {
 	display: block;
 	position: absolute;
-	width: 100px;
+	width: 120px;
+	height: 40px;
 	border: 2px solid blue;
 	border-radius: 10px;
 	background: lightgreen;
@@ -58,5 +90,9 @@ export default {
 
 .city.selected {
 	border: 2px solid red;
+}
+
+.city.dragging {
+	background: red;
 }
 </style>

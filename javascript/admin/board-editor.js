@@ -130,6 +130,16 @@ function storeWithInitialBoard(initialBoard) {
 				city.name = name
 			},
 
+			setCityPosition(state, {id, x, y}) {
+				const city = state.cities.find(c => c.id === id)
+				if (!city) {
+					throw new Error(`City ${id} not found`)
+				}
+
+				city.position.x = x;
+				city.position.y = y;
+			},
+
 			setCityPosX(state, {id, x}) {
 				const city = state.cities.find(c => c.id === id)
 				if (!city) {
@@ -258,6 +268,11 @@ function storeWithInitialBoard(initialBoard) {
 
 			setCityPosY({ commit, dispatch }, payload) {
 				commit("setCityPosY", payload)
+				return dispatch("persistCity", payload.id)
+			},
+
+			setCityPosition({ commit, dispatch }, payload) {
+				commit("setCityPosition", payload)
 				return dispatch("persistCity", payload.id)
 			},
 
