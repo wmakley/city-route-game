@@ -54,7 +54,7 @@ export default {
 			return {
 				left: this.city.position.x + "px",
 				top: this.city.position.y + "px",
-				zIndex: this.index + 100,
+				zIndex: this.index * 2 + 100,
 			};
 		},
 

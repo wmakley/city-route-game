@@ -62,7 +62,7 @@ export default defineComponent({
 	padding: 5px;
 	margin: 0 0 0 5px;
 	width: 200px;
-	top: 100;
+	top: 50px;
 }
 
 .city-manager li {
