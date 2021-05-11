@@ -8,12 +8,7 @@ func DeleteBoard(tx *gorm.DB, id uint) error {
 		return err
 	}
 
-	var cities []City
-	if err := tx.Find(&cities, "board_id = ?", board.ID).Error; err != nil {
-		return err
-	}
-
-	if err := tx.Delete(&cities).Error; err != nil {
+	if err := tx.Delete(&City{}, "board_id = ?", board.ID).Error; err != nil {
 		return err
 	}
 
