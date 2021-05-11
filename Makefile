@@ -18,6 +18,11 @@ run: bin/admin
 clean-db:
 	rm -fv ./data/*.sqlite
 
+migrate: bin/admin
+	bin/admin -migrate
+
+clean-migrate: clean_db migrate
+
 watch:
 ifndef REFLEX
 	$(error "reflex not found in PATH; you may need to run 'go get github.com/cespare/reflex' (be sure to do this outside of the api directory so it isn't added to go.mod)")

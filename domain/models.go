@@ -7,7 +7,7 @@ import (
 // Return an empty instance of every model for use with gorm Automigration
 func Models() []interface{} {
 	return []interface{}{
-		&Game{}, &Board{}, &Player{}, &PlayerBoard{}, &PlayerBonusToken{}, &BonusToken{}, &RouteBonusToken{}, &City{}, &CitySlot{}, &Route{}, &RouteSlot{},
+		&Game{}, &Board{}, &Player{}, &PlayerBoard{}, &PlayerBonusToken{}, &BonusToken{}, &RouteBonusToken{}, &City{}, &CitySpace{}, &Route{}, &RouteSpace{},
 	}
 }
 
@@ -19,6 +19,56 @@ type Model struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
+// Shared mixin
+type Position struct {
+	X int `json:"x" gorm:"not null;default:0"`
+	Y int `json:"y" gorm:"not null;default:0"`
+}
+
+// Board structure base model
+type Board struct {
+	Model
+	Name   string `json:"name" gorm:"not null;uniqueIndex"`
+	GameID *uint  `json:"gameId" gorm:"index"`
+	Width  int    `json:"width" gorm:"not null;default:0"`
+	Height int    `json:"height" gorm:"not null;default:0"`
+}
+
+// Board structure
+type City struct {
+	Model
+	BoardID    uint   `json:"boardId" gorm:"not null;index"`
+	Name       string `json:"name" gorm:"not null"`
+	Position   `json:"position"`
+	CitySpaces []CitySpace `json:"spaces"`
+}
+
+// Board structure
+type CitySpace struct {
+	Model
+	CityID            uint          `json:"cityId" gorm:"not null;uniqueIndex:uidx_city_space_city_id_order"`
+	Order             int           `json:"order" gorm:"not null;index:uidx_city_space_city_id_order"`
+	SpaceType         TradesmanType `json:"spaceType" gorm:"not null;default:1"`
+	RequiredPrivilege int           `json:"requiredPrivilege" gorm:"not null;default:1"`
+}
+
+// Board structure
+type Route struct {
+	Model
+	StartCityID uint         `json:"startCityId" gorm:"not null;index"`
+	EndCityID   uint         `json:"endCityId" gorm:"not null;index"`
+	TavernFlag  bool         `json:"tavernFlag" gorm:"not null;default:0"`
+	RouteSpaces []RouteSpace `json:"spaces"`
+}
+
+// Board structure
+type RouteSpace struct {
+	Model
+	RouteID uint `json:"routeId" gorm:"not null;uniqueIndex:uidx_route_space_route_order"`
+	Order   int  `json:"order" gorm:"not null;index:uidx_route_space_route_order"`
+}
+
+// Game state
 type Game struct {
 	Model
 	Name             string `json:"name" gorm:"not null;index"`
@@ -28,6 +78,7 @@ type Game struct {
 	Coellen4PlayerID *uint
 }
 
+// Game state
 type Player struct {
 	Model
 	GameID uint   `json:"gameId" gorm:"uniqueIndex:uidx_game_id_player_name"`
@@ -36,6 +87,7 @@ type Player struct {
 	Score  int    `json:"score" gorm:"not null;default:0"`
 }
 
+// Game state
 // todo: unique index on game id and player id
 type PlayerBoard struct {
 	Model
@@ -54,6 +106,7 @@ type PlayerBoard struct {
 	PlateBonusTokenID *uint
 }
 
+// Game state
 // Join table between players and bonus tokens
 type PlayerBonusToken struct {
 	Model
@@ -63,6 +116,7 @@ type PlayerBonusToken struct {
 	Played       bool `json:"played" gorm:"not null;default:0"`
 }
 
+// Game state
 // Represents a bonus token in the supply, initialized at start of game
 type SupplyBonusToken struct {
 	Model
@@ -72,6 +126,7 @@ type SupplyBonusToken struct {
 	BonusToken   BonusToken
 }
 
+// Game state
 type RouteBonusToken struct {
 	Model
 	GameID       uint `gorm:"not null;uniqueIndex:uidx_route_bonus_token"`
@@ -80,52 +135,10 @@ type RouteBonusToken struct {
 	BonusToken   BonusToken
 }
 
+// Game state
 // Represents a single bonus token
 type BonusToken struct {
 	Model
 	BonusTokenTypeID uint `gorm:"not null"`
 	Gold             bool `gorm:"not null"`
-}
-
-type Board struct {
-	Model
-	Name   string `json:"name" gorm:"not null;uniqueIndex"`
-	GameID *uint  `json:"gameId" gorm:"index"`
-	Width  int    `json:"width" gorm:"not null;default:0"`
-	Height int    `json:"height" gorm:"not null;default:0"`
-}
-
-type Position struct {
-	X int `json:"x" gorm:"not null;default:0"`
-	Y int `json:"y" gorm:"not null;default:0"`
-}
-
-type City struct {
-	Model
-	BoardID   uint   `json:"boardId" gorm:"not null;index"`
-	Name      string `json:"name" gorm:"not null"`
-	Position  `json:"position"`
-	CitySlots []CitySlot `json:"slots"`
-}
-
-type CitySlot struct {
-	Model
-	CityID            uint   `gorm:"not null;index"`
-	Order             int    `gorm:"not null"`
-	SlotType          string `gorm:"not null"`
-	RequiredPrivilege int    `gorm:"not null;default:1"`
-}
-
-type Route struct {
-	Model
-	StartCityID uint `gorm:"not null;index"`
-	EndCityID   uint `gorm:"not null;index"`
-	Tavern      bool `gorm:"not null;default:0"`
-	RouteSlots  []RouteSlot
-}
-
-type RouteSlot struct {
-	Model
-	RouteID uint `gorm:"not null;uniqueIndex:uidx_route_slot_route_order"`
-	Order   int  `gorm:"not null;index:uidx_route_slot_route_order"`
 }

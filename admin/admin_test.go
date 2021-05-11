@@ -332,6 +332,11 @@ func TestUpdateCity(t *testing.T) {
 func TestDeleteCity(t *testing.T) {
 	board := createTestBoard()
 	city := createTestCity(board.ID)
+	office := domain.CityOfficeSpace{
+		CityID:    city.ID,
+		Order:     1,
+		SpaceType: domain.TraderID,
+	}
 
 	url := fmt.Sprintf("/boards/%d/cities/%d", board.ID, city.ID)
 	req := httptest.NewRequest("DELETE", url, nil)

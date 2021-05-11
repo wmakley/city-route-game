@@ -2,9 +2,11 @@ package domain
 
 type ColorType string
 
-type TradesmanType string
+type TradesmanType uint
 
 type BonusTokenLocationName string
+
+type BonusTokenType uint
 
 const (
 	// Player colors:
@@ -15,11 +17,11 @@ const (
 	ColorPurple ColorType = "Purple"
 
 	// Tradesman types:
-	Trader   TradesmanType = "Trader"
-	Merchant TradesmanType = "Merchant"
+	TraderID TradesmanType = iota + 1
+	MerchantID
 
 	// Bonus token types:
-	BonusTokenExtraTradingPostID uint = iota
+	BonusTokenExtraTradingPostID BonusTokenType = iota + 1
 	BonusTokenExchangeTradingPostsID
 	BonusTokenMove3TradesmenID
 	BonusTokenDevelop1AbilityID
@@ -28,7 +30,7 @@ const (
 )
 
 var (
-	BonusTokenTypeCounts map[uint]int = map[uint]int{
+	BonusTokenTypeCounts map[BonusTokenType]int = map[BonusTokenType]int{
 		BonusTokenExtraTradingPostID:     4,
 		BonusTokenExchangeTradingPostsID: 3,
 		BonusTokenMove3TradesmenID:       2,

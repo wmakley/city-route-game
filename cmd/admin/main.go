@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -40,6 +41,9 @@ func main() {
 		if err != nil {
 			panic("Error migrating database: " + err.Error())
 		}
+
+		fmt.Println("Database migration successful!")
+		os.Exit(0)
 	}
 
 	admin.Init(db, "./templates")
