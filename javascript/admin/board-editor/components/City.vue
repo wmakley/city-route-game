@@ -86,6 +86,7 @@ export default {
 	background: lightgreen;
 	padding: 5px;
 	cursor: pointer;
+	text-align: center;
 }
 
 .city.selected {
