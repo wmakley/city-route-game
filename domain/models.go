@@ -40,7 +40,7 @@ type City struct {
 	BoardID    uint   `json:"boardId" gorm:"not null;index"`
 	Name       string `json:"name" gorm:"not null"`
 	Position   `json:"position"`
-	CitySpaces []CitySpace `json:"spaces" gorm:"foreignKey:CityID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	CitySpaces []CitySpace `json:"spaces"`
 }
 
 // Board structure
