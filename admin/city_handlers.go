@@ -4,7 +4,6 @@ import (
 	"city-route-game/domain"
 	"city-route-game/util"
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -12,8 +11,6 @@ import (
 )
 
 func ListCitiesHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("ListCitiesHandler")
-
 	vars := mux.Vars(r)
 	boardId := vars["boardId"]
 
@@ -143,8 +140,7 @@ func DeleteCityHandler(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 
-		err = db.Delete(&city).Error
-		if err != nil {
+		if err = domain.DeleteCity(tx, &city); err != nil {
 			return err
 		}
 

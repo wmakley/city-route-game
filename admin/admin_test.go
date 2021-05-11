@@ -35,7 +35,7 @@ func TestMain(m *testing.M) {
 	}
 
 	db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
+		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
 		panic("Error connecting to database: " + err.Error())
@@ -329,13 +329,80 @@ func TestUpdateCity(t *testing.T) {
 	}
 }
 
-func TestDeleteCity(t *testing.T) {
+func TestDeleteBoard(t *testing.T) {
 	board := createTestBoard()
 	city := createTestCity(board.ID)
-	office := domain.CityOfficeSpace{
+	space := domain.CitySpace{
 		CityID:    city.ID,
 		Order:     1,
 		SpaceType: domain.TraderID,
+	}
+	if err := db.Save(&space).Error; err != nil {
+		t.Fatalf("Error saving test space: %+v", err)
+	}
+	if err := db.Preload("CitySpaces").First(&city, city.ID).Error; err != nil {
+		t.Fatalf("Error reloading city: %+v", err)
+	}
+	if len(city.CitySpaces) != 1 {
+		t.Error("CitySpaces HasMany relationship is not loading")
+	}
+
+	url := fmt.Sprintf("/boards/%d", board.ID)
+	req := httptest.NewRequest("DELETE", url, nil)
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if !httpassert.Success(t, w) {
+		t.Log("Body:", w.Body)
+	}
+	httpassert.JavascriptContentType(t, w)
+
+	cities := make([]domain.City, 0)
+	if err := db.Find(&cities, city.ID).Error; err != nil {
+		panic(err)
+	}
+
+	spaces := make([]domain.CitySpace, 0)
+	if err := db.Find(&spaces, "city_id = ?", city.ID).Error; err != nil {
+		panic(err)
+	}
+
+	boards := make([]domain.Board, 0)
+	if err := db.Find(&boards, board.ID).Error; err != nil {
+		panic(err)
+	}
+
+	if len(spaces) != 0 {
+		t.Error("City spaces were not deleted")
+	}
+
+	if len(cities) != 0 {
+		t.Error("City was not deleted")
+	}
+
+	if len(boards) != 0 {
+		t.Error("Board was not deleted")
+	}
+}
+
+func TestDeleteCity(t *testing.T) {
+	board := createTestBoard()
+	city := createTestCity(board.ID)
+	space := domain.CitySpace{
+		CityID:    city.ID,
+		Order:     1,
+		SpaceType: domain.TraderID,
+	}
+	if err := db.Save(&space).Error; err != nil {
+		t.Fatalf("Error saving test space: %+v", err)
+	}
+	if err := db.Preload("CitySpaces").First(&city, city.ID).Error; err != nil {
+		t.Fatalf("Error reloading city: %+v", err)
+	}
+	if len(city.CitySpaces) != 1 {
+		t.Error("CitySpaces HasMany relationship is not loading")
 	}
 
 	url := fmt.Sprintf("/boards/%d/cities/%d", board.ID, city.ID)
@@ -353,6 +420,14 @@ func TestDeleteCity(t *testing.T) {
 	cities := make([]domain.City, 0)
 	if err := db.Find(&cities, city.ID).Error; err != nil {
 		panic(err)
+	}
+
+	spaces := make([]domain.CitySpace, 0)
+	if err := db.Find(&spaces, "city_id = ?", city.ID).Error; err != nil {
+		panic(err)
+	}
+	if len(spaces) != 0 {
+		t.Error("City spaces were not deleted")
 	}
 
 	if len(cities) != 0 {
