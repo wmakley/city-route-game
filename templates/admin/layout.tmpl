@@ -7,13 +7,14 @@
 	<title>{{block "title" .}}City Route Game Admin{{end}}</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 
-	<script src="http://localhost:9000/admin.bundle.js"></script>
+	<link rel="stylesheet" type="text/css" href="/admin.css">
+	<script src="/admin.bundle.js"></script>
 
 	{{block "meta" .}}{{end}}
 </head>
 
 <body>
-  	{{block "content" .}}{{end}}
+	{{block "content" .}}{{end}}
 
 	<div class="modal fade" id="defaultModal" tabindex="-1" aria-labelledby="defaultModalLabel" aria-hidden="true">
 		<div class="modal-dialog">

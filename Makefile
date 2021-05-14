@@ -11,6 +11,12 @@ bin/admin: $(GO_SRCS)
 
 clean:
 	rm -fv bin/*
+	rm static/*.js
+	rm static/*.css
+	rm static/*.LICENSE.txt
+	rm static/admin/*.js
+	rm static/admin/*.css
+	rm static/admin/*.LICENSE.txt
 
 run: bin/admin
 	bin/admin $(SERVER_FLAGS)

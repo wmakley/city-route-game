@@ -29,7 +29,7 @@ module.exports = function (env, argv) {
 		},
 
 		output: {
-			path: path.join(__dirname, 'static'),
+			path: path.join(__dirname, 'static/admin'),
 			filename: '[name].bundle.js',
 		},
 

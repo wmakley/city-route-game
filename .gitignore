@@ -28,3 +28,6 @@ tmp
 
 # VSCode currently is machine-specific
 .vscode
+
+# Compiled static assets
+static
