@@ -30,13 +30,7 @@ func BoardsIndexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewBoardHandler(w http.ResponseWriter, r *http.Request) {
-	data := BoardForm{
-		Form: Form{
-			Action: "/boards/",
-			Method: "POST",
-		},
-		Name: "",
-	}
+	data := domain.NewBoardForm()
 
 	err := ParseAndExecuteAdminTemplate(w, "boards/new", &data, "boards/_form")
 	if err != nil {
@@ -45,31 +39,27 @@ func NewBoardHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateBoardHandler(w http.ResponseWriter, r *http.Request) {
-	var form BoardForm
+	var form domain.BoardForm
+	var err error
 
-	err := formDecoder.Decode(&form, r.PostForm)
+	if err = formDecoder.Decode(&form, r.PostForm); err != nil {
+		internalServerError(err, w, r)
+		return
+	}
+
+	err = db.Transaction(func(tx *gorm.DB) error {
+		return domain.CreateBoard(tx, &form)
+	})
+
 	if err != nil {
-		internalServerError(err, w, r)
-		return
-	}
-
-	form.NormalizeInputs()
-
-	if !form.IsValid(db) {
-		w.WriteHeader(http.StatusBadRequest)
-		ParseAndExecuteAdminTemplate(w, "boards/new", &form, "boards/_form")
-		return
-	}
-
-	board := domain.Board{
-		Name:   form.Name,
-		Width:  800,
-		Height: 500,
-	}
-
-	if err := db.Save(&board).Error; err != nil {
-		internalServerError(err, w, r)
-		return
+		if errors.Is(err, domain.ErrInvalidForm) {
+			w.WriteHeader(http.StatusBadRequest)
+			ParseAndExecuteAdminTemplate(w, "boards/new", &form, "boards/_form")
+			return
+		} else {
+			internalServerError(err, w, r)
+			return
+		}
 	}
 
 	util.TurbolinksVisit("/boards", true, w, r)
@@ -97,7 +87,7 @@ func GetBoardByIdHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type EditBoardPage struct {
-	BoardForm BoardForm
+	BoardForm domain.BoardForm
 	BoardJSON string
 }
 
@@ -112,14 +102,7 @@ func EditBoardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	boardForm := BoardForm{
-		Form: Form{
-			Action: "/boards/" + key,
-			Method: "PATCH",
-		},
-		ID:   board.ID,
-		Name: board.Name,
-	}
+	boardForm := domain.NewEditBoardForm(&board)
 
 	boardJson, err := json.Marshal(board)
 	if err != nil {
@@ -145,7 +128,7 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 	gotJson := strings.HasPrefix(r.Header.Get("Content-Type"), "application/json")
 	respondWithJson := strings.HasPrefix(accept, "application/json")
 
-	var form BoardForm
+	var form domain.BoardForm
 
 	if gotJson {
 		err := json.NewDecoder(r.Body).Decode(&form)
@@ -160,12 +143,10 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	form.NormalizeInputs()
-
 	var board domain.Board
 	err := db.Transaction(func(tx *gorm.DB) error {
-		err := tx.First(&board, key).Error
-		if err != nil {
+
+		if err := tx.First(&board, key).Error; err != nil {
 			return err
 		}
 
@@ -185,16 +166,7 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		if !form.IsValid(db) {
-			return ErrInvalidForm
-		}
-
-		board.Name = form.Name
-		board.Width = form.Width
-		board.Height = form.Height
-
-		err = tx.Save(&board).Error
-		if err != nil {
+		if err := domain.UpdateBoard(tx, &form, &board); err != nil {
 			return err
 		}
 
@@ -202,7 +174,7 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		if errors.Is(err, ErrInvalidForm) {
+		if errors.Is(err, domain.ErrInvalidForm) {
 			if respondWithJson {
 				json := make(map[string]interface{})
 				json["board"] = board

@@ -1,14 +1,21 @@
-package admin
+package domain
 
 import (
-	"city-route-game/domain"
 	"errors"
+	"fmt"
 	"strings"
 
 	"gorm.io/gorm"
 )
 
 var ErrInvalidForm = errors.New("invalid form error")
+
+func NewPostForm(action string) Form {
+	return Form{
+		Action: action,
+		Method: "POST",
+	}
+}
 
 type Form struct {
 	errors map[string][]string `schema:"-" json:"-"`
@@ -63,6 +70,24 @@ func (f *Form) HasError() bool {
 	return true
 }
 
+func NewBoardForm() BoardForm {
+	return BoardForm{
+		Form: NewPostForm("/boards/"),
+		Name: "",
+	}
+}
+
+func NewEditBoardForm(board *Board) BoardForm {
+	return BoardForm{
+		Form: Form{
+			Action: fmt.Sprintf("/boards/%d", board.ID),
+			Method: "PATCH",
+		},
+		ID:   board.ID,
+		Name: board.Name,
+	}
+}
+
 type BoardForm struct {
 	Form   `json:"-"`
 	ID     uint   `json:"id"`
@@ -84,7 +109,7 @@ func (f *BoardForm) IsValid(db *gorm.DB) bool {
 		f.AddError("Name", "is too long; must be 100 characters or less")
 	} else {
 		// Name is in range, so go ahead and check for duplicates
-		var dupe domain.Board
+		var dupe Board
 
 		var query string
 		if f.ID == 0 {
@@ -115,9 +140,9 @@ func (f *BoardForm) IsValid(db *gorm.DB) bool {
 // Cities are always valid as long as they relate to a board;
 // we let the user do whatever they want with them.
 type CityForm struct {
-	ID       uint            `json:"id"`
-	Name     string          `json:"name"`
-	Position domain.Position `json:"position"`
+	ID       uint     `json:"id"`
+	Name     string   `json:"name"`
+	Position Position `json:"position"`
 }
 
 func (f *CityForm) NormalizeInputs() {

@@ -5,6 +5,7 @@ import (
 	"city-route-game/util"
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
@@ -43,31 +44,20 @@ func CreateCityHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	boardId := vars["boardId"]
 
-	var cityForm CityForm
+	var err error
+	var cityForm domain.CityForm
 
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&cityForm); err != nil {
+	if err = decoder.Decode(&cityForm); err != nil {
 		panic(err)
 	}
 
-	cityForm.NormalizeInputs()
-
 	var city domain.City
 
-	err := db.Transaction(func(tx *gorm.DB) error {
-		var board domain.Board
-		if err := db.First(&board, boardId).Error; err != nil {
-			return err
-		}
-
-		city = domain.City{
-			BoardID:  board.ID,
-			Name:     cityForm.Name,
-			Position: cityForm.Position,
-		}
-
-		if err := db.Save(&city).Error; err != nil {
+	err = db.Transaction(func(tx *gorm.DB) error {
+		city, err = domain.CreateCity(tx, boardId, &cityForm)
+		if err != nil {
 			return err
 		}
 
@@ -85,35 +75,25 @@ func CreateCityHandler(w http.ResponseWriter, r *http.Request) {
 func UpdateCityHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	boardId := vars["boardId"]
-	cityId := vars["id"]
+	cityId, err := strconv.ParseUint(vars["id"], 10, 32)
+	if err != nil {
+		panic(err)
+	}
 
-	var cityForm CityForm
+	var cityForm domain.CityForm
 
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&cityForm); err != nil {
 		panic(err)
 	}
+	cityForm.ID = uint(cityId)
 
-	cityForm.NormalizeInputs()
-
-	var board domain.Board
 	var city domain.City
+	err = db.Transaction(func(tx *gorm.DB) error {
+		var err error
 
-	err := db.Transaction(func(tx *gorm.DB) error {
-		if err := db.First(&board, boardId).Error; err != nil {
-			return err
-		}
-
-		if err := db.First(&city, cityId).Error; err != nil {
-			return err
-		}
-
-		city.Name = cityForm.Name
-		city.Position.X = cityForm.Position.X
-		city.Position.Y = cityForm.Position.Y
-
-		if err := db.Save(&city).Error; err != nil {
+		if city, err = domain.UpdateCity(tx, boardId, &cityForm); err != nil {
 			return err
 		}
 
@@ -133,19 +113,14 @@ func DeleteCityHandler(w http.ResponseWriter, r *http.Request) {
 	boardId := vars["boardId"]
 	cityId := vars["id"]
 
-	var city domain.City
 	err := db.Transaction(func(tx *gorm.DB) error {
-		err := db.First(&city, "board_id = ? AND id = ?", boardId, cityId).Error
-		if err != nil {
-			return err
-		}
-
-		if err = domain.DeleteCity(tx, &city); err != nil {
+		if err := domain.DeleteCityByBoardIDAndCityID(tx, boardId, cityId); err != nil {
 			return err
 		}
 
 		return nil
 	})
+
 	if err != nil {
 		handleDBErr(w, r, err)
 		return

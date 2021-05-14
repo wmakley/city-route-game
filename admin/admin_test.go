@@ -252,7 +252,7 @@ func TestListCitiesByBoardId(t *testing.T) {
 func TestCreateCity(t *testing.T) {
 	board := createTestBoard()
 	url := fmt.Sprintf("/boards/%d/cities/", board.ID)
-	city := CityForm{
+	city := domain.CityForm{
 		Name: "Test City",
 		Position: domain.Position{
 			X: 10,
@@ -287,7 +287,7 @@ func TestUpdateCity(t *testing.T) {
 	newName := "New City Name"
 	newX := 123
 	newY := 432
-	form := CityForm{
+	form := domain.CityForm{
 		Name: newName,
 		Position: domain.Position{
 			X: newX,
