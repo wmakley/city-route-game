@@ -35,7 +35,7 @@ jobs:
           go-version: 1.16
 
       - name: Build
-        run: make
+        run: touch node_modules/.timestamp && make
 
       - name: Test
         run: make test
