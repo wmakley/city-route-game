@@ -1,3 +1,5 @@
+// +heroku goVersion go1.16
+// +heroku install ./cmd/admin/main.go
 module city-route-game
 
 go 1.16

@@ -46,7 +46,7 @@ func TestMain(m *testing.M) {
 		panic("Error migrating database: " + err.Error())
 	}
 
-	Init(db, "../templates")
+	Init(db, "../templates", "")
 	testData = insertTestData()
 	router = NewAdminRouter(false)
 

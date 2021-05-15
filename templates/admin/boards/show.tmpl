@@ -1,6 +1,7 @@
 {{template "layout" .}}
-{{define "title"}}{{.Name}} - Admin{{end}}
+{{define "title"}}{{.Data.Name}} - Admin{{end}}
 {{define "content"}}
+{{with .Data}}
 	<div class="container">
 		<h1>{{.Name}}</h1>
 
@@ -16,4 +17,5 @@
 			<a href="/boards">Back</a>
 		</p>
 	</div>
+{{end}}
 {{end}}

@@ -1,6 +1,7 @@
 {{template "layout" .}}
 {{define "title"}}Boards - Admin{{end}}
 {{define "content"}}
+{{with .Data}}
 	<div class="container">
 		<h1>Boards</h1>
 		{{ if . }}
@@ -37,4 +38,5 @@
 			<a href="/boards/new" class="btn btn-primary">+ New Board</a>
 		</p>
 	</div>
+{{ end }}
 {{ end }}

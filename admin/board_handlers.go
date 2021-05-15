@@ -23,7 +23,9 @@ func BoardsIndexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := ParseAndExecuteAdminTemplate(w, "boards/index", &boards)
+	page := NewPageWithData(boards)
+
+	err := ParseAndExecuteAdminTemplate(w, "boards/index", &page)
 	if err != nil {
 		panic(err)
 	}
@@ -31,8 +33,9 @@ func BoardsIndexHandler(w http.ResponseWriter, r *http.Request) {
 
 func NewBoardHandler(w http.ResponseWriter, r *http.Request) {
 	data := domain.NewBoardForm()
+	page := NewPageWithData(&data)
 
-	err := ParseAndExecuteAdminTemplate(w, "boards/new", &data, "boards/_form")
+	err := ParseAndExecuteAdminTemplate(w, "boards/new", &page, "boards/_form")
 	if err != nil {
 		panic(err)
 	}
@@ -53,8 +56,9 @@ func CreateBoardHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidForm) {
+			page := NewPageWithData(&form)
 			w.WriteHeader(http.StatusBadRequest)
-			ParseAndExecuteAdminTemplate(w, "boards/new", &form, "boards/_form")
+			ParseAndExecuteAdminTemplate(w, "boards/new", &page, "boards/_form")
 			return
 		} else {
 			internalServerError(err, w, r)
@@ -79,7 +83,8 @@ func GetBoardByIdHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Accept") == "application/json" {
 		util.MustReturnJson(w, board)
 	} else {
-		err = ParseAndExecuteAdminTemplate(w, "boards/show", &board)
+		page := NewPageWithData(&board)
+		err = ParseAndExecuteAdminTemplate(w, "boards/show", &page)
 		if err != nil {
 			panic(err)
 		}
@@ -87,7 +92,7 @@ func GetBoardByIdHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type EditBoardPage struct {
-	BoardForm domain.BoardForm
+	BoardForm *domain.BoardForm
 	BoardJSON string
 }
 
@@ -109,12 +114,12 @@ func EditBoardHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	editBoardPage := EditBoardPage{
-		BoardForm: boardForm,
+	page := NewPageWithData(EditBoardPage{
+		BoardForm: &boardForm,
 		BoardJSON: string(boardJson),
-	}
+	})
 
-	err = ParseAndExecuteAdminTemplate(w, "boards/edit", &editBoardPage, "boards/_form")
+	err = ParseAndExecuteAdminTemplate(w, "boards/edit", &page, "boards/_form")
 	if err != nil {
 		panic(err)
 	}
@@ -189,14 +194,14 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 					panic(err)
 				}
 
-				invalidEditBoardPage := EditBoardPage{
-					BoardForm: form,
+				page := NewPageWithData(EditBoardPage{
+					BoardForm: &form,
 					BoardJSON: string(boardJson),
-				}
+				})
 
 				util.SetHTMLContentType(w)
 				w.WriteHeader(http.StatusBadRequest)
-				err = ParseAndExecuteAdminTemplate(w, "boards/edit", &invalidEditBoardPage, "boards/_form")
+				err = ParseAndExecuteAdminTemplate(w, "boards/edit", &page, "boards/_form")
 				if err != nil {
 					panic(err)
 				}

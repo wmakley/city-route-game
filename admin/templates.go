@@ -9,9 +9,27 @@ import (
 	"strings"
 )
 
+type Page interface {
+	AssetHost() string
+}
+
+type PageWithData struct {
+	Data interface{}
+}
+
+func NewPageWithData(data interface{}) Page {
+	return &PageWithData{
+		Data: data,
+	}
+}
+
+func (p *PageWithData) AssetHost() string {
+	return assetHost
+}
+
 const templateExtension = ".tmpl"
 
-func ParseAndExecuteAdminTemplate(w io.Writer, shortPath string, data interface{}, extraTemplates ...string) error {
+func ParseAndExecuteAdminTemplate(w io.Writer, shortPath string, data *Page, extraTemplates ...string) error {
 	primaryTemplateFullPath := TemplatePath(shortPath)
 	primaryTemplateName := path.Base(primaryTemplateFullPath)
 

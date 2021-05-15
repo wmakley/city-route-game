@@ -7,8 +7,8 @@
 	<title>{{block "title" .}}City Route Game Admin{{end}}</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 
-	<link rel="stylesheet" type="text/css" href="/admin.css">
-	<script src="/admin.bundle.js"></script>
+	<link rel="stylesheet" type="text/css" href="{{.AssetHost}}/admin.css">
+	<script src="{{.AssetHost}}/admin.bundle.js"></script>
 
 	{{block "meta" .}}{{end}}
 </head>
@@ -32,7 +32,7 @@
 		</div>
 	</div>
 
-  	{{block "endbody" .}}{{end}}
+	{{block "endbody" .}}{{end}}
 </body>
 
 </html>{{end}}

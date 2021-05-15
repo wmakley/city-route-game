@@ -24,9 +24,11 @@ func main() {
 	var listenAddr string
 	var port int
 	var migrate bool
+	var assetHost string
 	flag.StringVar(&listenAddr, "listenaddr", "", "address to listen on (default \"\")")
 	flag.IntVar(&port, "port", 8080, "port to listen on (default 8080)")
 	flag.BoolVar(&migrate, "migrate", false, "Migrate database on startup")
+	flag.StringVar(&assetHost, "assethost", "", "Optional asset host domain")
 	flag.Parse()
 
 	db, err = gorm.Open(sqlite.Open("data/city-route-game.sqlite"), &gorm.Config{
@@ -46,7 +48,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	admin.Init(db, "./templates")
+	admin.Init(db, "./templates", assetHost)
 
 	router := admin.NewAdminRouter(true)
 
