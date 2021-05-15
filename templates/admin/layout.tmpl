@@ -7,7 +7,7 @@
 	<title>{{block "title" .}}City Route Game Admin{{end}}</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 
-	<link rel="stylesheet" type="text/css" href="{{.AssetHost}}/admin.css">
+	{{if ne "http://localhost:9000" .AssetHost}}<link rel="stylesheet" type="text/css" href="{{.AssetHost}}/admin.css">{{end}}
 	<script src="{{.AssetHost}}/admin.bundle.js"></script>
 
 	{{block "meta" .}}{{end}}
