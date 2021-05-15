@@ -1,4 +1,0 @@
-#!/bin/bash -e
-npm -g install pnpm
-pnpm install
-pnpm run build
