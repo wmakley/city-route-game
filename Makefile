@@ -4,15 +4,21 @@ GO_SRCS := $(shell find . -type f -name '*.go' -and -not -name '*_test.go')
 JS_SRCS := $(shell find javascript -type f -name '*.js' -or -name '*.css' -or -name '*.vue')
 REFLEX := $(shell command -v reflex 2> /dev/null)
 
-all: bin/admin static/admin/admin.bundlejs
+all: bin/admin static/admin/admin.bundle.js
 
 bin/admin: $(GO_SRCS)
 	go build -o $@ cmd/admin/main.go
 
-static/admin/admin.bundlejs: $(JS_SRCS)
+static/admin/admin.bundle.js: node_modules/.timestamp $(JS_SRCS)
 	pnpm run build
+	touch $@
+
+node_modules/.timestamp:
+	pnpm install
+	touch node_modules/.timestamp
 
 clean:
+	rm node_modules/.timestamp
 	rm -fv bin/*
 	rm static/*.js
 	rm static/*.css
