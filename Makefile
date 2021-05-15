@@ -3,6 +3,7 @@
 GO_SRCS := $(shell find . -type f -name '*.go' -and -not -name '*_test.go')
 JS_SRCS := $(shell find javascript -type f -name '*.js' -or -name '*.css' -or -name '*.vue')
 REFLEX := $(shell command -v reflex 2> /dev/null)
+PNPM := $(shell command -v pnpm 2> /dev/null)
 
 all: bin/admin static/admin/admin.bundle.js
 
@@ -14,6 +15,9 @@ static/admin/admin.bundle.js: node_modules/.timestamp $(JS_SRCS)
 	touch $@
 
 node_modules/.timestamp:
+ifndef PNPM
+	$(error "pnpm is not available; please run npm -g install pnpm@6.2.3")
+endif
 	pnpm install
 	touch node_modules/.timestamp
 
