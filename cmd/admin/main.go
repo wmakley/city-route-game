@@ -35,7 +35,7 @@ func main() {
 
 	log.Println("Database URL:", databaseUrl)
 	db, err = gorm.Open(postgres.Open(databaseUrl), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Error),
 	})
 	if err != nil {
 		panic("Error connecting to database: " + err.Error())

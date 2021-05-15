@@ -1,2 +1,3 @@
 #!/bin/bash -eux
 rm -rfv node_modules
+./bin/main -database-url $DATABASE_URL -migrate
