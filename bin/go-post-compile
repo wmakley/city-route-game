@@ -1,2 +1,2 @@
-#!/bin/bash -e
-rm -rf node_modules
+#!/bin/bash -eux
+rm -rfv node_modules

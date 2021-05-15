@@ -33,6 +33,7 @@ func main() {
 	flag.StringVar(&databaseUrl, "database-url", "host=localhost user=william dbname=hansa_dev port=5432 sslmode=disable TimeZone=UTC", "Database URL")
 	flag.Parse()
 
+	log.Println("Database URL:", databaseUrl)
 	db, err = gorm.Open(postgres.Open(databaseUrl), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
