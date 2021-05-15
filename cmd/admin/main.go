@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -48,7 +47,6 @@ func main() {
 		}
 
 		fmt.Println("Database migration successful!")
-		os.Exit(0)
 	}
 
 	admin.Init(db, "./templates", assetHost)
