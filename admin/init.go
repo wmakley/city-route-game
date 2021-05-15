@@ -6,15 +6,29 @@ import (
 )
 
 var (
-	db           *gorm.DB
-	formDecoder  *schema.Decoder
-	templateRoot string
-	assetHost    string
+	db          *gorm.DB
+	formDecoder *schema.Decoder
+	config      Config
 )
 
-func Init(dbConn *gorm.DB, templateRoot_ string, assetHost_ string) {
+type Config struct {
+	TemplateRoot string
+	AssetHost    string
+	IPWhitelist  map[string]bool
+}
+
+func Init(dbConn *gorm.DB, templateRoot string, assetHost string, ipWhitelist []string) {
 	db = dbConn
 	formDecoder = schema.NewDecoder()
-	templateRoot = templateRoot_
-	assetHost = assetHost_
+
+	ipWhitelistMap := make(map[string]bool, len(ipWhitelist))
+	for _, ip := range ipWhitelist {
+		ipWhitelistMap[ip] = true
+	}
+
+	config = Config{
+		TemplateRoot: templateRoot,
+		AssetHost:    assetHost,
+		IPWhitelist:  ipWhitelistMap,
+	}
 }

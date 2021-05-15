@@ -24,7 +24,7 @@ func NewPageWithData(data interface{}) Page {
 }
 
 func (p *PageWithData) AssetHost() string {
-	return assetHost
+	return config.AssetHost
 }
 
 const templateExtension = ".tmpl"
@@ -77,8 +77,8 @@ func ExecuteTemplateBuffered(t *template.Template, w io.Writer, templateName str
 func TemplatePath(shortPath string) string {
 	hasExtension := strings.HasSuffix(shortPath, templateExtension)
 	if hasExtension {
-		return templateRoot + "/admin/" + shortPath
+		return config.TemplateRoot + "/admin/" + shortPath
 	} else {
-		return templateRoot + "/admin/" + shortPath + templateExtension
+		return config.TemplateRoot + "/admin/" + shortPath + templateExtension
 	}
 }

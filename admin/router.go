@@ -2,6 +2,7 @@ package admin
 
 import (
 	"city-route-game/middleware"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -11,6 +12,9 @@ func NewAdminRouter(logRequests bool) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	if logRequests {
 		router.Use(middleware.RequestLogger)
+	}
+	if len(config.IPWhitelist) > 0 {
+		router.Use(IPWhitelistMiddleware)
 	}
 	router.Use(
 		middleware.RecoverPanic,
@@ -40,4 +44,29 @@ func NewAdminRouter(logRequests bool) *mux.Router {
 	router.Handle("/{file}", http.FileServer(http.Dir("static/admin")))
 
 	return router
+}
+
+func IPWhitelistMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip := getIP(r)
+		log.Println("Request IP", ip)
+
+		_, ipFound := config.IPWhitelist[ip]
+
+		if ipFound {
+			next.ServeHTTP(w, r)
+		} else {
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// GetIP gets a requests IP address by reading off the forwarded-for
+// header (for proxies) and falls back to use the remote address.
+func getIP(r *http.Request) string {
+	forwarded := r.Header.Get("X-FORWARDED-FOR")
+	if forwarded != "" {
+		return forwarded
+	}
+	return r.RemoteAddr
 }

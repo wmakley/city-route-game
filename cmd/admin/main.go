@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -25,11 +26,13 @@ func main() {
 	var migrate bool
 	var assetHost string
 	var databaseUrl string
+	var ipWhitelist string
 	flag.StringVar(&listenAddr, "listenaddr", "", "address to listen on (default \"\")")
 	flag.IntVar(&port, "port", 8080, "port to listen on (default 8080)")
 	flag.BoolVar(&migrate, "migrate", false, "Migrate database on startup")
 	flag.StringVar(&assetHost, "assethost", "", "Optional asset host domain")
 	flag.StringVar(&databaseUrl, "database-url", "host=localhost user=william dbname=hansa_dev port=5432 sslmode=disable TimeZone=UTC", "Database URL")
+	flag.StringVar(&ipWhitelist, "ip-whitelist", "", "Optional IP Whitelist")
 	flag.Parse()
 
 	fmt.Println("Database URL:", databaseUrl)
@@ -49,7 +52,12 @@ func main() {
 		fmt.Println("Database migration successful!")
 	}
 
-	admin.Init(db, "./templates", assetHost)
+	var splitIPs []string
+	if ipWhitelist != "" {
+		splitIPs = strings.Split(ipWhitelist, ";")
+	}
+
+	admin.Init(db, "./templates", assetHost, splitIPs)
 
 	router := admin.NewAdminRouter(true)
 
