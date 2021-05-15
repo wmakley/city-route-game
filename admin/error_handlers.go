@@ -11,6 +11,7 @@ import (
 )
 
 type ErrorPage struct {
+	AssetHost  string
 	StatusCode int
 	Message    string
 	Details    string
@@ -25,6 +26,7 @@ func genericNotFound(w http.ResponseWriter, r *http.Request) {
 	}
 
 	errorPage := ErrorPage{
+		AssetHost:  assetHost,
 		StatusCode: 404,
 		Message:    "Not Found",
 		Details:    "The resource you were looking for was not found on this server. :(",
@@ -49,6 +51,7 @@ func internalServerError(err error, w http.ResponseWriter, r *http.Request) {
 	}
 
 	errorPage := ErrorPage{
+		AssetHost:  assetHost,
 		StatusCode: 500,
 		Message:    "Internal Server Error",
 		Details:    "Something went wrong. :(",
