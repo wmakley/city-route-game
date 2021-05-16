@@ -55,10 +55,15 @@ func RequestLogger(next http.Handler) http.Handler {
 			return
 		}
 
+		ip, err := util.GetIP(r)
+		if err != nil {
+			ip = "UNKOWN_IP"
+		}
+
 		t1 := time.Now()
 		next.ServeHTTP(w, r)
 		t2 := time.Now()
-		log.Printf("[%s] %q %v\n", r.Method, r.URL.String(), t2.Sub(t1))
+		log.Printf("[%s] [%s] %q %v\n", ip, r.Method, r.URL.String(), t2.Sub(t1))
 	})
 }
 
@@ -117,4 +122,32 @@ func RecoverPanic(next http.Handler) http.Handler {
 		}()
 		next.ServeHTTP(w, r)
 	})
+}
+
+func NewIPWhiteListMiddleware(ips []string, verbose bool) func(http.Handler) http.Handler {
+	ipWhitelistMap := make(map[string]bool, len(ips))
+	for _, ip := range ips {
+		ipWhitelistMap[ip] = true
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ip, err := util.GetIP(r)
+			if err != nil {
+				log.Printf("Error getting request IP: %+v\n", err)
+				ip = ""
+			}
+
+			_, ipFound := ipWhitelistMap[ip]
+
+			if ipFound {
+				next.ServeHTTP(w, r)
+			} else {
+				if verbose {
+					log.Println("IP not found in whitelist")
+				}
+				http.NotFound(w, r)
+			}
+		})
+	}
 }

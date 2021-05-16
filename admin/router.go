@@ -2,8 +2,6 @@ package admin
 
 import (
 	"city-route-game/middleware"
-	"city-route-game/util"
-	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -15,7 +13,7 @@ func NewAdminRouter(logRequests bool) *mux.Router {
 		router.Use(middleware.RequestLogger)
 	}
 	if len(config.IPWhitelist) > 0 {
-		router.Use(IPWhitelistMiddleware)
+		router.Use(middleware.NewIPWhiteListMiddleware(config.IPWhitelist, true))
 	}
 	router.Use(
 		middleware.RecoverPanic,
@@ -45,25 +43,4 @@ func NewAdminRouter(logRequests bool) *mux.Router {
 	router.Handle("/{file}", http.FileServer(http.Dir("static/admin")))
 
 	return router
-}
-
-func IPWhitelistMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, err := util.GetIP(r)
-		if err != nil {
-			log.Printf("Error getting request IP: %+v\n", err)
-			ip = ""
-		} else {
-			log.Println("Request IP", ip)
-		}
-
-		_, ipFound := config.IPWhitelist[ip]
-
-		if ipFound {
-			next.ServeHTTP(w, r)
-		} else {
-			log.Println("IP not found in whitelist")
-			http.NotFound(w, r)
-		}
-	})
 }
