@@ -152,3 +152,29 @@ func (f *CityForm) NormalizeInputs() {
 func (f *CityForm) IsValid() bool {
 	return true
 }
+
+type CitySpaceForm struct {
+	CityID            uint
+	SpaceType         TradesmanType
+	RequiredPrivilege int
+	Form
+}
+
+func (f *CitySpaceForm) NormalizeInputs() {
+}
+
+func (f *CitySpaceForm) IsValid(tx *gorm.DB) bool {
+	if f.CityID == 0 {
+		f.AddError("CityID", "is required")
+	}
+
+	if f.RequiredPrivilege < 1 || f.RequiredPrivilege > 4 {
+		f.AddError("RequiredPrivilege", "is out of bounds (must be between 1 and 4)")
+	}
+
+	if f.SpaceType != TraderID && f.SpaceType != MerchantID {
+		f.AddError("SpaceType", "is invalid")
+	}
+
+	return f.HasError()
+}

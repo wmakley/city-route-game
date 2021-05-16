@@ -152,3 +152,13 @@ func DeleteCity(tx *gorm.DB, city *City) (err error) {
 
 	return nil
 }
+
+func AddSpaceToCity(tx *gorm.DB, form CitySpaceForm, city *City) (err error) {
+	form.NormalizeInputs()
+
+	if !form.IsValid(tx) {
+		err = ErrInvalidForm
+		return
+	}
+
+}
