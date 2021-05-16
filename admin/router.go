@@ -2,6 +2,7 @@ package admin
 
 import (
 	"city-route-game/middleware"
+	"city-route-game/util"
 	"log"
 	"net/http"
 
@@ -48,25 +49,21 @@ func NewAdminRouter(logRequests bool) *mux.Router {
 
 func IPWhitelistMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip := getIP(r)
-		log.Println("Request IP", ip)
+		ip, err := util.GetIP(r)
+		if err != nil {
+			log.Printf("Error getting request IP: %+v\n", err)
+			ip = ""
+		} else {
+			log.Println("Request IP", ip)
+		}
 
 		_, ipFound := config.IPWhitelist[ip]
 
 		if ipFound {
 			next.ServeHTTP(w, r)
 		} else {
+			log.Println("IP not found in whitelist")
 			http.NotFound(w, r)
 		}
 	})
-}
-
-// GetIP gets a requests IP address by reading off the forwarded-for
-// header (for proxies) and falls back to use the remote address.
-func getIP(r *http.Request) string {
-	forwarded := r.Header.Get("X-FORWARDED-FOR")
-	if forwarded != "" {
-		return forwarded
-	}
-	return r.RemoteAddr
 }

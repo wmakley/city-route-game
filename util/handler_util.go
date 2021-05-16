@@ -5,10 +5,27 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"net"
 	"net/http"
 
 	"gorm.io/gorm"
 )
+
+// GetIP gets a requests IP address by reading off the forwarded-for
+// header (for proxies) and falls back to use the remote address.
+func GetIP(r *http.Request) (string, error) {
+	forwarded := r.Header.Get("X-FORWARDED-FOR")
+	if forwarded != "" {
+		return forwarded, nil
+	}
+
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return "", fmt.Errorf("userip: %q is not IP:port", r.RemoteAddr)
+	}
+
+	return ip, nil
+}
 
 func SetCorsHeaders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")

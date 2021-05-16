@@ -31,8 +31,8 @@ func main() {
 	flag.IntVar(&port, "port", 8080, "port to listen on (default 8080)")
 	flag.BoolVar(&migrate, "migrate", false, "Migrate database on startup")
 	flag.StringVar(&assetHost, "assethost", "", "Optional asset host domain")
-	flag.StringVar(&databaseUrl, "database-url", "host=localhost user=william dbname=hansa_dev port=5432 sslmode=disable TimeZone=UTC", "Database URL")
-	flag.StringVar(&ipWhitelist, "ip-whitelist", "", "Optional IP Whitelist")
+	flag.StringVar(&databaseUrl, "database-url", "host=localhost user=william password=password dbname=hansa_dev port=5432 sslmode=disable TimeZone=UTC", "Database URL")
+	flag.StringVar(&ipWhitelist, "ipwhitelist", "", "Optional IP Whitelist")
 	flag.Parse()
 
 	fmt.Println("Database URL:", databaseUrl)
@@ -54,7 +54,8 @@ func main() {
 
 	var splitIPs []string
 	if ipWhitelist != "" {
-		splitIPs = strings.Split(ipWhitelist, ";")
+		splitIPs = strings.Split(ipWhitelist, ",")
+		fmt.Printf("Whitelisted IPs: %+v\n", splitIPs)
 	}
 
 	admin.Init(db, "./templates", assetHost, splitIPs)
