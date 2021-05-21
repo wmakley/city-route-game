@@ -3,8 +3,10 @@ package admin
 import (
 	"bytes"
 	"city-route-game/domain"
+	"city-route-game/gorm_provider"
 	"city-route-game/httpassert"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -22,31 +24,40 @@ import (
 var (
 	router   *mux.Router
 	testData TestData
+	db domain.PersistenceProvider
 )
 
 func TestMain(m *testing.M) {
-	var err error
-
 	dbPath := "../data/admin-test.sqlite"
 
-	err = os.Remove(dbPath)
+	err := os.Remove(dbPath)
 	if err != nil && !os.IsNotExist(err) {
-		panic("Error deleting prior test database: " + err.Error())
+		panic("Error deleting prior test gorm_provider: " + err.Error())
 	}
 
-	db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+	dbConn, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
-		panic("Error connecting to database: " + err.Error())
+		panic("Error connecting to gorm_provider: " + err.Error())
 	}
 
-	err = db.AutoMigrate(domain.Models()...)
+	err = dbConn.AutoMigrate(domain.Models()...)
 	if err != nil {
-		panic("Error migrating database: " + err.Error())
+		panic("Error migrating gorm_provider: " + err.Error())
 	}
 
-	Init(db, "../templates", "", []string{})
+	db = gorm_provider.NewGormProvider(dbConn)
+
+	Init(Config{
+		TemplateRoot: "../templates",
+		AssetHost: "",
+		IPWhitelist: []string{},
+	})
+	domain.Init(domain.Config{
+		PersistenceProvider: db,
+	})
+
 	testData = insertTestData()
 	router = NewAdminRouter(false)
 
@@ -171,11 +182,12 @@ func Test_update_board_name_via_web_form(t *testing.T) {
 	httpassert.Success(t, w)
 	httpassert.JavascriptContentType(t, w)
 
-	if err := db.Find(&board, board.ID).Error; err != nil {
+	updatedBoard, err := db.GetBoardByID(board.ID)
+	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 
-	if board.Name != "New Name" {
+	if updatedBoard.Name != "New Name" {
 		t.Errorf("Board name was not updated (was '%s')", board.Name)
 	}
 }
@@ -208,14 +220,15 @@ func Test_update_board_dimensions_via_json(t *testing.T) {
 	}
 	httpassert.JsonContentType(t, w)
 
-	if err = db.Find(&board, board.ID).Error; err != nil {
-		panic(err)
+	updatedBoard, err := db.GetBoardByID(board.ID)
+	if err != nil {
+		t.Fatalf("%+v", err)
 	}
 
-	if board.Width != newWidth {
+	if updatedBoard.Width != newWidth {
 		t.Errorf("Board with was not updated (was %d)", board.Width)
 	}
-	if board.Height != newHeight {
+	if updatedBoard.Height != newHeight {
 		t.Errorf("Board height was was not updated (was %d)", board.Height)
 	}
 }
@@ -337,18 +350,18 @@ func TestDeleteBoard(t *testing.T) {
 		Order:     1,
 		SpaceType: domain.TraderID,
 	}
-	if err := db.Save(&space).Error; err != nil {
+	var err error
+	if err = db.SaveCitySpace(&space); err != nil {
 		t.Fatalf("Error saving test space: %+v", err)
 	}
-	if err := db.Preload("CitySpaces").First(&city, city.ID).Error; err != nil {
+	if city, err = db.GetCityByID(city.ID); err != nil {
 		t.Fatalf("Error reloading city: %+v", err)
 	}
 	if len(city.CitySpaces) != 1 {
 		t.Error("CitySpaces HasMany relationship is not loading")
 	}
 
-	url := fmt.Sprintf("/boards/%d", board.ID)
-	req := httptest.NewRequest("DELETE", url, nil)
+	req := httptest.NewRequest("DELETE", fmt.Sprintf("/boards/%d", board.ID), nil)
 	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 
 	w := httptest.NewRecorder()
@@ -358,33 +371,6 @@ func TestDeleteBoard(t *testing.T) {
 		t.Log("Body:", w.Body)
 	}
 	httpassert.JavascriptContentType(t, w)
-
-	cities := make([]domain.City, 0)
-	if err := db.Find(&cities, city.ID).Error; err != nil {
-		panic(err)
-	}
-
-	spaces := make([]domain.CitySpace, 0)
-	if err := db.Find(&spaces, "city_id = ?", city.ID).Error; err != nil {
-		panic(err)
-	}
-
-	boards := make([]domain.Board, 0)
-	if err := db.Find(&boards, board.ID).Error; err != nil {
-		panic(err)
-	}
-
-	if len(spaces) != 0 {
-		t.Error("City spaces were not deleted")
-	}
-
-	if len(cities) != 0 {
-		t.Error("City was not deleted")
-	}
-
-	if len(boards) != 0 {
-		t.Error("Board was not deleted")
-	}
 }
 
 func TestDeleteCity(t *testing.T) {
@@ -460,27 +446,29 @@ func insertTestData() TestData {
 var testBoardCounter = 0
 
 func createTestBoard() *domain.Board {
-	board := domain.Board{
+	board := &domain.Board{
 		Name:   fmt.Sprintf("Test Board %d", testBoardCounter),
 		Width:  10,
 		Height: 20,
 	}
 	testBoardCounter++
-	if err := db.Save(&board).Error; err != nil {
+	var err error
+	if board, err = db.SaveBoard(board); err != nil {
 		panic(err)
 	}
-	return &board
+	return board
 }
 
 func createTestCity(boardID uint) *domain.City {
-	city := domain.City{
+	city := &domain.City{
 		BoardID: boardID,
 		Name:    "Test City",
 	}
 
-	if err := db.Save(&city).Error; err != nil {
+	var err error
+	if city, err = db.SaveCity(city); err != nil {
 		panic(err)
 	}
 
-	return &city
+	return city
 }

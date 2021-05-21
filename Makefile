@@ -41,7 +41,7 @@ clean-db:
 migrate: bin/admin
 	bin/admin -migrate
 
-clean-migrate: clean_db migrate
+clean-migrate: clean-db migrate
 
 watch:
 ifndef REFLEX

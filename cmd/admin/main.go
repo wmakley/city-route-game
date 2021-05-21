@@ -3,6 +3,7 @@ package main
 import (
 	"city-route-game/admin"
 	"city-route-game/domain"
+	"city-route-game/gorm_provider"
 	"flag"
 	"fmt"
 	"log"
@@ -29,24 +30,25 @@ func main() {
 	var ipWhitelist string
 	flag.StringVar(&listenAddr, "listenaddr", "", "address to listen on (default \"\")")
 	flag.IntVar(&port, "port", 8080, "port to listen on (default 8080)")
-	flag.BoolVar(&migrate, "migrate", false, "Migrate database on startup")
+	flag.BoolVar(&migrate, "migrate", false, "Migrate gorm_provider on startup")
 	flag.StringVar(&assetHost, "assethost", "", "Optional asset host domain")
-	flag.StringVar(&databaseUrl, "database-url", "host=localhost user=william password=password dbname=hansa_dev port=5432 sslmode=disable TimeZone=UTC", "Database URL")
+	flag.StringVar(&databaseUrl, "gorm_provider-url", "host=localhost user=william password=password dbname=hansa_dev port=5432 sslmode=disable TimeZone=UTC", "Database URL")
 	flag.StringVar(&ipWhitelist, "ipwhitelist", "", "Optional IP Whitelist")
 	flag.Parse()
 
 	fmt.Println("Database URL:", databaseUrl)
 	db, err = gorm.Open(postgres.Open(databaseUrl), &gorm.Config{
+		DisableNestedTransaction: true,
 		Logger: logger.Default.LogMode(logger.Error),
 	})
 	if err != nil {
-		panic("Error connecting to database: " + err.Error())
+		panic("Error connecting to gorm_provider: " + err.Error())
 	}
 
 	if migrate {
 		err = db.AutoMigrate(domain.Models()...)
 		if err != nil {
-			panic("Error migrating database: " + err.Error())
+			panic("Error migrating gorm_provider: " + err.Error())
 		}
 
 		fmt.Println("Database migration successful!")
@@ -58,7 +60,14 @@ func main() {
 		fmt.Printf("Whitelisted IPs: %+v\n", splitIPs)
 	}
 
-	admin.Init(db, "./templates", assetHost, splitIPs)
+	domain.Init(domain.Config{
+		PersistenceProvider: gorm_provider.NewGormProvider(db),
+	})
+	admin.Init(admin.Config{
+		TemplateRoot: "./templates",
+		AssetHost:    assetHost,
+		IPWhitelist:  splitIPs,
+	})
 
 	router := admin.NewAdminRouter(true)
 

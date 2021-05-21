@@ -6,27 +6,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
-	"gorm.io/gorm"
 )
 
 func BoardsIndexHandler(w http.ResponseWriter, r *http.Request) {
-	var boards []domain.Board
-
-	if err := db.Find(&boards).Error; err != nil {
-		internalServerError(err, w, r)
-		return
+	boards, err := domain.ListBoards(domain.InitialContext())
+	if err != nil {
+		panic(err)
 	}
 
 	page := NewPageWithData(boards)
 
-	err := ParseAndExecuteAdminTemplate(w, "boards/index", &page)
-	if err != nil {
+	if err = ParseAndExecuteAdminTemplate(w, "boards/index", &page); err != nil {
 		panic(err)
 	}
 }
@@ -50,15 +44,15 @@ func CreateBoardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = db.Transaction(func(tx *gorm.DB) error {
-		return domain.CreateBoard(tx, &form)
-	})
+	_, err = domain.CreateBoard(domain.InitialContext(), &form)
 
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidForm) {
 			page := NewPageWithData(&form)
 			w.WriteHeader(http.StatusBadRequest)
-			ParseAndExecuteAdminTemplate(w, "boards/new", &page, "boards/_form")
+			if err = ParseAndExecuteAdminTemplate(w, "boards/new", &page, "boards/_form"); err != nil {
+				panic(err)
+			}
 			return
 		} else {
 			internalServerError(err, w, r)
@@ -73,8 +67,7 @@ func GetBoardByIdHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	var board domain.Board
-	err := db.First(&board, key).Error
+	board, err := domain.GetBoardByID(domain.InitialContext(), key)
 	if err != nil {
 		handleDBErr(w, r, err)
 		return
@@ -100,14 +93,13 @@ func EditBoardHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["id"]
 
-	var board domain.Board
-	err := db.First(&board, key).Error
+	board, err := domain.GetBoardByID(domain.InitialContext(), key)
 	if err != nil {
 		handleDBErr(w, r, err)
 		return
 	}
 
-	boardForm := domain.NewEditBoardForm(&board)
+	boardForm := domain.NewEditBoardForm(board)
 
 	boardJson, err := json.Marshal(board)
 	if err != nil {
@@ -148,46 +140,27 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var board domain.Board
-	err := db.Transaction(func(tx *gorm.DB) error {
+	var err error
+	var board *domain.Board
 
-		if err := tx.First(&board, key).Error; err != nil {
-			return err
-		}
-
-		// Set missing fields to original values
-		if gotJson {
-			// Json is mostly used to update dimensions, so ignore name
-			if form.Name == "" {
-				form.Name = board.Name
-			}
-		} else {
-			// Html is mostly used to update the name
-			if r.FormValue("Width") == "" {
-				form.Width = board.Width
-			}
-			if r.FormValue("Height") == "" {
-				form.Height = board.Height
-			}
-		}
-
-		if err := domain.UpdateBoard(tx, &form, &board); err != nil {
-			return err
-		}
-
-		return nil
-	})
+	if gotJson && form.Name == "" {
+		board, err = domain.UpdateBoardDimensions(domain.InitialContext(), key, &form)
+	} else if form.Width == 0 && form.Height == 0 {
+		board, err = domain.UpdateBoardName(domain.InitialContext(), key, &form)
+	} else {
+		board, err = domain.UpdateBoard(domain.InitialContext(), key, &form)
+	}
 
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidForm) {
 			if respondWithJson {
-				json := make(map[string]interface{})
-				json["board"] = board
-				json["errors"] = form.Errors()
+				body := make(map[string]interface{})
+				body["board"] = board
+				body["errors"] = form.Errors
 
 				util.SetJSONContentType(w)
 				w.WriteHeader(http.StatusBadRequest)
-				util.MustEncode(w, json)
+				util.MustEncode(w, body)
 			} else {
 				boardJson, err := json.Marshal(board)
 				if err != nil {
@@ -214,28 +187,22 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 
 	if respondWithJson {
 		util.SetJSONContentType(w)
-		util.MustEncode(w, &board)
+		util.MustEncode(w, board)
 	} else {
 		// Call a global function in the admin js directly
 		util.SetJavaScriptContentType(w)
-		fmt.Fprintf(w, ";updateFormSucceeded();")
+		_, err := fmt.Fprint(w, ";updateFormSucceeded();")
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
 func DeleteBoardHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := strconv.ParseUint(vars["id"], 10, 0)
-	if err != nil {
-		log.Println("Bad ID:", vars["id"])
-		http.NotFound(w, r)
-		return
-	}
+	id := vars["id"]
 
-	err = db.Transaction(func(tx *gorm.DB) error {
-		return domain.DeleteBoard(tx, uint(id))
-	})
-
-	if err != nil {
+	if err := domain.DeleteBoardById(id); err != nil {
 		handleDBErr(w, r, err)
 		return
 	}

@@ -31,7 +31,7 @@ func HtmlContentType(t *testing.T, resp *httptest.ResponseRecorder) bool {
 	return true
 }
 
-// Assert that the content-type header is "application/json; charset=utf-8"
+// JsonContentType Assert that the content-type header is "application/json; charset=utf-8"
 // (Not providing the charset may cause issues for some clients.)
 func JsonContentType(t *testing.T, resp *httptest.ResponseRecorder) bool {
 	contentType := resp.Header().Get("Content-Type")
@@ -51,7 +51,7 @@ func JavascriptContentType(t *testing.T, resp *httptest.ResponseRecorder) bool {
 	return true
 }
 
-// Assert that the response content type is JSON, and the first character is "["
+// JsonArray Assert that the response content type is JSON, and the first character is "["
 func JsonArray(t *testing.T, resp *httptest.ResponseRecorder) bool {
 	if !JsonContentType(t, resp) {
 		return false
@@ -65,7 +65,7 @@ func JsonArray(t *testing.T, resp *httptest.ResponseRecorder) bool {
 	return true
 }
 
-// Assert that the response content type is JSON, and the first character is "{"
+// JsonObject Assert that the response content type is JSON, and the first character is "{"
 func JsonObject(t *testing.T, resp *httptest.ResponseRecorder) bool {
 	if !JsonContentType(t, resp) {
 		return false

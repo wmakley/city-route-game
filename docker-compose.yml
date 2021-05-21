@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: hansa_dev
     volumes:
-      - database-data:/var/lib/postgresql/data/
+      - gorm_provider-data:/var/lib/postgresql/data/
     ports:
       - "5432:5432"
 

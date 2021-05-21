@@ -5,6 +5,7 @@ module city-route-game
 go 1.16
 
 require (
+	github.com/assertgo/assert v2.0.0+incompatible // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/schema v1.2.0
 	gorm.io/driver/postgres v1.1.0

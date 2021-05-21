@@ -1,17 +1,37 @@
 package domain
 
 import (
+	"fmt"
+	"gorm.io/gorm"
 	"time"
 )
 
-// Return an empty instance of every model for use with gorm Automigration
+// Models Return an empty instance of every model for use with gorm Automigration
 func Models() []interface{} {
 	return []interface{}{
-		&Game{}, &Board{}, &Player{}, &PlayerBoard{}, &PlayerBonusToken{}, &BonusToken{}, &RouteBonusToken{}, &City{}, &CitySpace{}, &Route{}, &RouteSpace{},
+		&Game{},
+		&Board{},
+		&Player{},
+		&PlayerBoard{},
+		&PlayerBonusToken{},
+		&BonusToken{},
+		&RouteBonusToken{},
+		&City{},
+		&CitySpace{},
+		&Route{},
+		&RouteSpace{},
 	}
 }
 
-// Simpler version of gorm.Model with JSON tags and without the DeletedAt column.
+type ConstraintViolation struct {
+	msg string
+}
+
+func (c *ConstraintViolation)Error() string {
+	return c.msg
+}
+
+// Model is a simpler version of gorm.Model with JSON tags and without the DeletedAt column.
 // When we delete, we mean it!
 type Model struct {
 	ID        uint      `json:"id" gorm:"primarykey"`
@@ -19,7 +39,7 @@ type Model struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-// Shared mixin
+// Position is a shared mixin with X and Y
 type Position struct {
 	X int `json:"x" gorm:"not null;default:0"`
 	Y int `json:"y" gorm:"not null;default:0"`
@@ -34,7 +54,25 @@ type Board struct {
 	Height int    `json:"height" gorm:"not null;default:0"`
 }
 
-// Board structure
+func (b *Board)BeforeDelete(tx *gorm.DB) error {
+	var cities []City
+	var err error
+
+	err = tx.Find(&cities, "board_id = ?", b.ID).Error
+	if err != nil {
+		return err
+	}
+
+	for _, city := range cities {
+		if err = tx.Delete(&city).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// City part of the Board structure
 type City struct {
 	Model
 	BoardID    uint   `json:"boardId" gorm:"not null;index"`
@@ -43,7 +81,42 @@ type City struct {
 	CitySpaces []CitySpace `json:"spaces"`
 }
 
-// Board structure
+func (c *City)BeforeSave(tx *gorm.DB) error {
+	var result []uint
+	err := tx.Table("boards").
+		Where("id = ?", c.BoardID).
+		Limit(1).
+		Pluck("id", &result).Error
+	if err != nil {
+		return err
+	}
+	if len(result) <= 0 {
+		return fmt.Errorf("constraint violation: board with id %d not found", c.BoardID)
+	}
+	return nil
+}
+
+func (c *City)BeforeDelete(tx *gorm.DB) error {
+	err := tx.Delete(&CitySpace{}, "city_id = ?", c.ID).Error
+	if err != nil {
+		return err
+	}
+
+	var routes []Route
+	if err = tx.Find(&routes, "start_city_id = ? OR end_city_id = ?", c.ID, c.ID).Error; err != nil {
+		return err
+	}
+
+	for _, route := range routes {
+		if err = tx.Delete(&route).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// CitySpace Part of a City, which is part of Board
 type CitySpace struct {
 	Model
 	CityID            uint          `json:"cityId" gorm:"not null;uniqueIndex:uidx_city_space_city_id_order"`
@@ -52,7 +125,7 @@ type CitySpace struct {
 	RequiredPrivilege int           `json:"requiredPrivilege" gorm:"not null;default:1"`
 }
 
-// Board structure
+// Route Connects two City on a Board
 type Route struct {
 	Model
 	StartCityID uint         `json:"startCityId" gorm:"not null;index"`
@@ -61,14 +134,21 @@ type Route struct {
 	RouteSpaces []RouteSpace `json:"spaces"`
 }
 
-// Board structure
+func (r *Route)BeforeDelete(tx *gorm.DB) error {
+	if err := tx.Delete(&RouteSpace{}, "route_id = ?", r.ID).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+// RouteSpace part of the board structure
 type RouteSpace struct {
 	Model
 	RouteID uint `json:"routeId" gorm:"not null;uniqueIndex:uidx_route_space_route_order"`
 	Order   int  `json:"order" gorm:"not null;index:uidx_route_space_route_order"`
 }
 
-// Game state
+// Game represents the game state
 type Game struct {
 	Model
 	Name             string `json:"name" gorm:"not null;index"`
@@ -78,7 +158,7 @@ type Game struct {
 	Coellen4PlayerID *uint
 }
 
-// Game state
+// Player is part of the game state
 type Player struct {
 	Model
 	GameID uint   `json:"gameId" gorm:"uniqueIndex:uidx_game_id_player_name"`
@@ -87,7 +167,7 @@ type Player struct {
 	Score  int    `json:"score" gorm:"not null;default:0"`
 }
 
-// Game state
+// PlayerBoard part of the game state
 // todo: unique index on game id and player id
 type PlayerBoard struct {
 	Model
@@ -135,8 +215,7 @@ type RouteBonusToken struct {
 	BonusToken   BonusToken
 }
 
-// Game state
-// Represents a single bonus token
+// BonusToken represents a single bonus token in the game state
 type BonusToken struct {
 	Model
 	BonusTokenTypeID uint `gorm:"not null"`

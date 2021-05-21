@@ -2,6 +2,7 @@ package admin
 
 import (
 	"city-route-game/domain"
+	city2 "city-route-game/domain/city"
 	"city-route-game/util"
 	"encoding/json"
 	"net/http"
@@ -56,7 +57,7 @@ func CreateCityHandler(w http.ResponseWriter, r *http.Request) {
 	var city domain.City
 
 	err = db.Transaction(func(tx *gorm.DB) error {
-		city, err = domain.CreateCity(tx, boardId, &cityForm)
+		city, err = city2.CreateCity(tx, boardId, &cityForm)
 		if err != nil {
 			return err
 		}
@@ -93,7 +94,7 @@ func UpdateCityHandler(w http.ResponseWriter, r *http.Request) {
 	err = db.Transaction(func(tx *gorm.DB) error {
 		var err error
 
-		if city, err = domain.UpdateCity(tx, boardId, &cityForm); err != nil {
+		if city, err = city2.UpdateCity(tx, boardId, &cityForm); err != nil {
 			return err
 		}
 
@@ -114,7 +115,7 @@ func DeleteCityHandler(w http.ResponseWriter, r *http.Request) {
 	cityId := vars["id"]
 
 	err := db.Transaction(func(tx *gorm.DB) error {
-		if err := domain.DeleteCityByBoardIDAndCityID(tx, boardId, cityId); err != nil {
+		if err := city2.DeleteCityByBoardIDAndCityID(tx, boardId, cityId); err != nil {
 			return err
 		}
 

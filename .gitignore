@@ -28,6 +28,7 @@ tmp
 
 # VSCode currently is machine-specific
 .vscode
+.idea
 
 # Currently not trying to version control Jetbrains config
 .idea
