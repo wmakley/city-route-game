@@ -29,5 +29,8 @@ tmp
 # VSCode currently is machine-specific
 .vscode
 
+# Currently not trying to version control Jetbrains config
+.idea
+
 # Compiled static assets
 static
