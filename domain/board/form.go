@@ -44,30 +44,13 @@ func (f *Form) NormalizeInputs() {
 	}
 }
 
-func (f *Form) IsValid(repo Repository) bool {
+func (f *Form) IsValid() bool {
 	f.ClearErrors()
 
 	if len(f.Name) == 0 {
 		f.AddError("Name", "must not be blank")
 	} else if len(f.Name) > 100 {
 		f.AddError("Name", "is too long; must be 100 characters or less")
-	} else {
-		// Name is in range, so go ahead and check for duplicates
-		var duped bool
-		var err error
-		if f.ID == 0 {
-			duped, err = repo.BoardExistsWithName(f.Name)
-		} else {
-			duped, err = repo.BoardExistsWithNameAndIdNot(f.Name, f.ID)
-		}
-
-		if err != nil {
-			panic(err)
-		}
-
-		if duped {
-			f.AddError("Name", "has already been taken")
-		}
 	}
 
 	if f.Width < 0 {

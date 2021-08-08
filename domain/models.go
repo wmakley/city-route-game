@@ -82,6 +82,7 @@ type City struct {
 }
 
 func (c *City)BeforeSave(tx *gorm.DB) error {
+	// Ensure board exists
 	var result []uint
 	err := tx.Table("boards").
 		Where("id = ?", c.BoardID).

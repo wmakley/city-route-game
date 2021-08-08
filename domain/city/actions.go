@@ -4,6 +4,7 @@ import (
 	"city-route-game/domain"
 	"errors"
 	"fmt"
+
 	"gorm.io/gorm"
 )
 
@@ -11,6 +12,15 @@ var db *gorm.DB
 
 func Init(dbConn *gorm.DB) {
 	db = dbConn
+}
+
+func FindByID(id interface{}) (*domain.City, error) {
+	var city domain.City
+	err := db.Preload("CitySpaces").First(&city, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &city, nil
 }
 
 func FindAllByBoardID(boardID interface{}) ([]domain.City, error) {
@@ -24,7 +34,7 @@ func FindAllByBoardID(boardID interface{}) ([]domain.City, error) {
 
 func Create(boardID interface{}, form *Form) (*domain.City, error) {
 	var city domain.City
-	err := db.Transaction(func (tx *gorm.DB) error {
+	err := db.Transaction(func(tx *gorm.DB) error {
 		form.NormalizeInputs()
 
 		if !form.IsValid(tx) {
@@ -84,7 +94,7 @@ func Update(form *Form) (city *domain.City, err error) {
 }
 
 func DeleteByBoardIDAndCityID(boardID interface{}, cityID interface{}) error {
-	return db.Transaction(func (tx *gorm.DB) error {
+	return db.Transaction(func(tx *gorm.DB) error {
 		var city domain.City
 		if err := tx.First(&city, "board_id = ? and id = ?", boardID, cityID).Error; err != nil {
 			return err
@@ -93,29 +103,36 @@ func DeleteByBoardIDAndCityID(boardID interface{}, cityID interface{}) error {
 		return tx.Delete(&city).Error
 	})
 }
-//
-//func AddSpaceToCity(form *CitySpaceForm) (*CitySpace, error) {
-//	form.NormalizeInputs()
-//
-//	if !form.IsValid(tx) {
-//		return nil, ErrInvalidForm
-//	}
-//
-//	city, err := GetCityByID(tx, form.CityID)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	space := CitySpace{
-//		CityID: city.ID,
-//		Order: len(city.CitySpaces),
-//		SpaceType: form.SpaceType,
-//		RequiredPrivilege: form.RequiredPrivilege,
-//	}
-//
-//	if err = tx.Save(&space).Error; err != nil {
-//		return nil, err
-//	}
-//
-//	return &space, nil
-//}
+
+func AddSpace(form *AddCitySpaceForm) (*domain.CitySpace, error) {
+	var city domain.City
+	var space domain.CitySpace
+	err := db.Transaction(func(tx *gorm.DB) error {
+		if !form.IsValid(tx) {
+			return domain.ErrInvalidForm
+		}
+
+		err := tx.Preload("CitySpaces").First(&city, form.CityID).Error
+		if err != nil {
+			return err
+		}
+
+		space = domain.CitySpace{
+			CityID:            city.ID,
+			Order:             len(city.CitySpaces),
+			SpaceType:         form.SpaceType,
+			RequiredPrivilege: form.RequiredPrivilege,
+		}
+
+		if err = tx.Save(&space).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &space, nil
+}

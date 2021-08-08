@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"city-route-game/gorm_provider"
+	"city-route-game/repository"
 	"errors"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -21,15 +21,15 @@ func TestMain(m *testing.M) {
 		Logger: logger.Default.LogMode(logger.Error),
 	})
 	if err != nil {
-		panic("Error connecting to gorm_provider: " + err.Error())
+		panic("Error connecting to repository: " + err.Error())
 	}
 
 	if err := dbConn.AutoMigrate(Models()...); err != nil {
-		panic("Error migrating gorm_provider: " + err.Error())
+		panic("Error migrating repository: " + err.Error())
 	}
 
 	Init(Config{
-		PersistenceProvider: gorm_provider.NewGormProvider(dbConn),
+		BoardRepository: repository.NewGormProvider(dbConn),
 	})
 
 	os.Exit(m.Run())

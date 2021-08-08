@@ -1,10 +1,7 @@
 package domain
 
-// PersistenceProvider Service that is capable of loading, saving, and deleting domain objects
-type PersistenceProvider interface {
-	// Transaction start a new transaction, or reuse the current one
-	Transaction(callback func(PersistenceProvider) error) error
-
+// BoardRepository Service that is capable of loading, saving, and deleting boards and board pieces
+type BoardRepository interface {
 	GetBoardByID(id interface{}) (*Board, error)
 	SaveBoard(board *Board) error
 	ListBoards() ([]Board, error)
@@ -20,4 +17,5 @@ type PersistenceProvider interface {
 
 	SaveCitySpace(*CitySpace) error
 	GetCitySpacesByCityID(cityID interface{}) ([]CitySpace, error)
+	DeleteCitySpaceByID(id interface{}) error
 }

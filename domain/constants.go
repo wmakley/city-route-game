@@ -17,16 +17,16 @@ const (
 	ColorPurple ColorType = "Purple"
 
 	// Tradesman types:
-	TraderID TradesmanType = iota + 1
-	MerchantID
+	TraderID   TradesmanType = 1
+	MerchantID TradesmanType = 2
 
 	// Bonus token types:
-	BonusTokenExtraTradingPostID BonusTokenType = iota + 1
-	BonusTokenExchangeTradingPostsID
-	BonusTokenMove3TradesmenID
-	BonusTokenDevelop1AbilityID
-	BonusTokenPlusThreeActionsID
-	BonusTokenPlusFourActionsID
+	BonusTokenExtraTradingPostID     BonusTokenType = 1
+	BonusTokenExchangeTradingPostsID BonusTokenType = 2
+	BonusTokenMove3TradesmenID       BonusTokenType = 3
+	BonusTokenDevelop1AbilityID      BonusTokenType = 4
+	BonusTokenPlusThreeActionsID     BonusTokenType = 5
+	BonusTokenPlusFourActionsID      BonusTokenType = 6
 )
 
 var (

@@ -1,4 +1,4 @@
-package gorm_provider
+package repository
 
 import (
 	"city-route-game/domain"
@@ -19,39 +19,43 @@ var (
 
 func TestMain(m *testing.M) {
 	dbPath := "file::memory:?cache=shared"
+	var err error
 
-	err := os.Remove(dbPath)
-	if err != nil && !os.IsNotExist(err) {
-		panic("Error deleting prior test gorm_provider: " + err.Error())
-	}
+	//err := os.Remove(dbPath)
+	//if err != nil && !os.IsNotExist(err) {
+	//	panic("Error deleting prior test repository: " + err.Error())
+	//}
 
 	DB, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Error),
+		Logger: logger.Default.LogMode(logger.Info),
 		DisableNestedTransaction: true,
 	})
 	if err != nil {
-		panic("Error connecting to gorm_provider: " + err.Error())
+		panic("Error connecting to database: " + err.Error())
 	}
 
 	if err := DB.AutoMigrate(domain.Models()...); err != nil {
-		panic("Error migrating gorm_provider: " + err.Error())
+		panic("Error migrating database: " + err.Error())
 	}
 
 	os.Exit(m.Run())
 }
 
-// Create a transaction within which the GormProvider interface may be tested using gorm itself
-func TempTransaction(callback func (domain.PersistenceProvider, *gorm.DB)) {
-	DB.Transaction(func(tx *gorm.DB) error {
-		provider := NewGormProvider(tx)
-		callback(provider, tx)
+// Create a transaction within which the GormRepository interface may be tested using gorm itself
+func TempTransaction(callback func (domain.BoardRepository, *gorm.DB)) {
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		repo := NewGormRepository(tx)
+		callback(repo, tx)
 		return Rollback
 	})
+	if err != nil && !errors.Is(err, Rollback) {
+		panic(err)
+	}
 }
 
 func TestListBoards(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func (p domain.PersistenceProvider, tx *gorm.DB) {
+	TempTransaction(func (p domain.BoardRepository, tx *gorm.DB) {
 		boards := []domain.Board{
 			{
 				Name:   "Test Board 1",
@@ -80,7 +84,7 @@ func TestListBoards(t *testing.T) {
 
 func TestCreateBoard(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func(p domain.PersistenceProvider, tx *gorm.DB) {
+	TempTransaction(func(p domain.BoardRepository, tx *gorm.DB) {
 		board := &domain.Board{
 			Name:   "My Awesome Board",
 			Width:  200,
@@ -103,7 +107,7 @@ func TestCreateBoard(t *testing.T) {
 
 func TestUpdateBoard(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func(p domain.PersistenceProvider, tx *gorm.DB) {
+	TempTransaction(func(p domain.BoardRepository, tx *gorm.DB) {
 		board := &domain.Board{
 			Name:   "Original Name",
 			Width:  200,
@@ -131,9 +135,9 @@ func TestUpdateBoard(t *testing.T) {
 	})
 }
 
-func TestDeleteBoard(t *testing.T) {
+func TestDeleteBoardByIDDeletesNestedRecords(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func(p domain.PersistenceProvider, tx *gorm.DB) {
+	TempTransaction(func(p domain.BoardRepository, tx *gorm.DB) {
 		board := domain.Board{
 			Name: "Test Board",
 		}
@@ -177,20 +181,21 @@ func TestDeleteBoard(t *testing.T) {
 
 func TestListCitiesByBoardId(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func (p domain.PersistenceProvider, tx *gorm.DB) {
+	TempTransaction(func (p domain.BoardRepository, tx *gorm.DB) {
 		testData := insertTestData()
-		createTestCity(testData.EmptyBoard.ID)
+		createTestCityWithSpaces(testData.EmptyBoard.ID)
 		board := testData.BoardWithCities
 
 		results, err := p.ListCitiesByBoardID(board.ID)
 		assert.That(err).IsNil()
 		assert.ThatInt(len(results)).IsEqualTo(len(testData.BoardWithCitiesCities))
+		assert.ThatInt(len(results[0].CitySpaces)).IsGreaterThan(0)
 	})
 }
 
 func TestSaveCity(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func(p domain.PersistenceProvider, tx *gorm.DB) {
+	TempTransaction(func(p domain.BoardRepository, tx *gorm.DB) {
 		board := createTestBoard()
 		city := createTestCity(board.ID)
 
@@ -215,6 +220,71 @@ func TestSaveCity(t *testing.T) {
 		if updatedCity.Position.Y != 432 {
 			t.Error("City Position Y was not updated")
 		}
+	})
+}
+
+func TestGetCitySpacesByCityID(t *testing.T) {
+	assert := assert.New(t)
+	TempTransaction(func (p domain.BoardRepository, tx *gorm.DB) {
+		board := createTestBoard()
+		city := createTestCityWithSpaces(board.ID)
+
+		spaces, err := p.GetCitySpacesByCityID(city.ID)
+		assert.That(err).IsNil()
+
+		assert.ThatInt(len(spaces)).IsEqualTo(len(city.CitySpaces))
+	})
+}
+
+func TestSaveCitySpace(t *testing.T) {
+	assert := assert.New(t)
+	TempTransaction(func (p domain.BoardRepository, tx *gorm.DB) {
+		board := createTestBoard()
+		city := createTestCity(board.ID)
+
+		space := domain.CitySpace{
+			CityID: city.ID,
+			Order: 1,
+			SpaceType: domain.MerchantID,
+			RequiredPrivilege: 2,
+		}
+		err := p.SaveCitySpace(&space)
+		assert.That(err).IsNil()
+
+		city, err = p.GetCityByID(city.ID)
+		assert.That(err).IsNil()
+
+		space = city.CitySpaces[0]
+		assert.That(space.SpaceType).IsEqualTo(domain.MerchantID)
+		assert.ThatInt(space.RequiredPrivilege).IsEqualTo(2)
+		assert.ThatInt(space.Order).IsEqualTo(1)
+	})
+}
+
+func TestDeleteCitySpaceByIDSucceeds(t *testing.T) {
+	assert := assert.New(t)
+	TempTransaction(func (p domain.BoardRepository, tx *gorm.DB) {
+		board := createTestBoard()
+		city := createTestCity(board.ID)
+
+		space := domain.CitySpace{
+			CityID: city.ID,
+			Order: 1,
+			SpaceType: domain.MerchantID,
+			RequiredPrivilege: 2,
+		}
+		err := p.SaveCitySpace(&space)
+		assert.That(err).IsNil()
+
+		p.DeleteCitySpaceByID(space.ID)
+
+		city, err = p.GetCityByID(city.ID)
+		assert.That(err).IsNil()
+
+		space = city.CitySpaces[0]
+		assert.That(space.SpaceType).IsEqualTo(domain.MerchantID)
+		assert.ThatInt(space.RequiredPrivilege).IsEqualTo(2)
+		assert.ThatInt(space.Order).IsEqualTo(1)
 	})
 }
 
@@ -266,4 +336,35 @@ func createTestCity(boardID uint) *domain.City {
 	}
 
 	return &city
+}
+
+func createTestCityWithSpaces(boardID uint) *domain.City {
+	city := createTestCity(boardID)
+
+	city.CitySpaces = []domain.CitySpace{
+		{
+			CityID:            city.ID,
+			Order:             1,
+			SpaceType:         domain.TraderID,
+			RequiredPrivilege: 1,
+		},
+		{
+			CityID:            city.ID,
+			Order:             2,
+			SpaceType:         domain.MerchantID,
+			RequiredPrivilege: 2,
+		},
+		{
+			CityID:            city.ID,
+			Order:             3,
+			SpaceType:         domain.TraderID,
+			RequiredPrivilege: 3,
+		},
+	}
+
+	if err := DB.Save(city.CitySpaces).Error; err != nil {
+		panic(err)
+	}
+
+	return city
 }

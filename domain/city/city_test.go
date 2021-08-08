@@ -3,19 +3,20 @@ package city
 import (
 	"city-route-game/domain"
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/assertgo/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"os"
-	"testing"
 )
 
 func TestMain(m *testing.M) {
 	dbPath := "file::memory:?cache=shared"
 
 	dbConn, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Error),
+		Logger:                   logger.Default.LogMode(logger.Error),
 		DisableNestedTransaction: true,
 	})
 	if err != nil {
@@ -30,7 +31,6 @@ func TestMain(m *testing.M) {
 
 	os.Exit(m.Run())
 }
-
 
 func TestFindAllByBoardID(t *testing.T) {
 	assert := assert.New(t)
@@ -75,6 +75,29 @@ func TestCreate(t *testing.T) {
 	if updatedCity.Position.Y != 432 {
 		t.Error("City Position Y was not updated")
 	}
+}
+
+func TestAddSpace(t *testing.T) {
+	assert := assert.New(t)
+	board := createTestBoard()
+	city := createTestCity(board.ID)
+
+	form := AddCitySpaceForm{
+		CityID:            city.ID,
+		SpaceType:         domain.MerchantID,
+		RequiredPrivilege: 2,
+	}
+
+	space, err := AddSpace(&form)
+	if err != nil {
+		t.Fatalf("Errors: %+v", form.Errors)
+	}
+	if space == nil {
+		t.Fatal("space is nil")
+	}
+	assert.That(space.SpaceType).IsEqualTo(domain.MerchantID)
+	assert.ThatInt(space.RequiredPrivilege).IsEqualTo(2)
+	assert.ThatInt(space.Order).IsEqualTo(1)
 }
 
 type TestData struct {

@@ -6,7 +6,6 @@ import (
 )
 
 type Repository interface {
-	Transaction(func (repository Repository) error) error
 	ListCitiesByBoardID(boardID interface{}) ([]domain.City, error)
 	GetCityByID(id interface{}) (*domain.City, error)
 	SaveCity(city *domain.City) error

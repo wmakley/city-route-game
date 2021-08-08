@@ -6,14 +6,11 @@ import (
 	"gorm.io/gorm"
 )
 
-type Repository interface {
-	Transaction(func (repository Repository) error) error
+type BoardRepository interface {
 	GetBoardByID(id interface{}) (*domain.Board, error)
 	SaveBoard(board *domain.Board) error
-	ListBoards() ([]domain.Board, error)
+	ListBoardNamesAndIDs() ([]domain.Board, error)
 	DeleteBoardByID(id interface{}) error
-	BoardExistsWithName(name string) (bool, error)
-	BoardExistsWithNameAndIdNot(name string, idNot interface{}) (bool, error)
 }
 
 type GormRepositoryImpl struct {
@@ -24,12 +21,6 @@ func NewGormRepositoryImpl(dbConn *gorm.DB) *GormRepositoryImpl {
 	return &GormRepositoryImpl{
 		db: dbConn,
 	}
-}
-
-func (p *GormRepositoryImpl)Transaction(callback func (Repository) error) error {
-	return p.db.Transaction(func (tx *gorm.DB) error {
-		return callback(NewGormRepositoryImpl(tx))
-	})
 }
 
 func (p *GormRepositoryImpl)GetBoardByID(id interface{}) (*domain.Board, error) {

@@ -3,7 +3,7 @@ package admin
 import (
 	"bytes"
 	"city-route-game/domain"
-	"city-route-game/gorm_provider"
+	"city-route-game/repository"
 	"city-route-game/httpassert"
 	"encoding/json"
 	"errors"
@@ -24,7 +24,7 @@ import (
 var (
 	router   *mux.Router
 	testData TestData
-	db domain.PersistenceProvider
+	db domain.BoardRepository
 )
 
 func TestMain(m *testing.M) {
@@ -32,22 +32,22 @@ func TestMain(m *testing.M) {
 
 	err := os.Remove(dbPath)
 	if err != nil && !os.IsNotExist(err) {
-		panic("Error deleting prior test gorm_provider: " + err.Error())
+		panic("Error deleting prior test repository: " + err.Error())
 	}
 
 	dbConn, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
-		panic("Error connecting to gorm_provider: " + err.Error())
+		panic("Error connecting to repository: " + err.Error())
 	}
 
 	err = dbConn.AutoMigrate(domain.Models()...)
 	if err != nil {
-		panic("Error migrating gorm_provider: " + err.Error())
+		panic("Error migrating repository: " + err.Error())
 	}
 
-	db = gorm_provider.NewGormProvider(dbConn)
+	db = repository.NewGormProvider(dbConn)
 
 	Init(Config{
 		TemplateRoot: "../templates",
