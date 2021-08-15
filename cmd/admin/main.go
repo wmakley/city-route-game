@@ -51,7 +51,7 @@ func main() {
 		fmt.Println("Database migration successful!")
 	}
 
-	boardRepo := repository.NewGormRepository(db)
+	boardRepo := repository.NewGormBoardRepository(db)
 
 	var splitIPs []string
 	if ipWhitelist != "" {

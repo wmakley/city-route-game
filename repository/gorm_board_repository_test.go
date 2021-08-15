@@ -13,42 +13,38 @@ import (
 )
 
 var (
-	DB *gorm.DB // original gorm connection
-	Rollback = errors.New("rollback")
+	db       *gorm.DB // original gorm connection
+	rollback = errors.New("rollback")
 )
 
 func TestMain(m *testing.M) {
 	dbPath := "file::memory:?cache=shared"
 	var err error
 
-	//err := os.Remove(dbPath)
-	//if err != nil && !os.IsNotExist(err) {
-	//	panic("Error deleting prior test repository: " + err.Error())
-	//}
-
-	DB, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+	db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Warn),
 		DisableNestedTransaction: true,
 	})
 	if err != nil {
 		panic("Error connecting to database: " + err.Error())
 	}
 
-	if err := DB.AutoMigrate(domain.Models()...); err != nil {
+	if err := db.AutoMigrate(domain.Models()...); err != nil {
 		panic("Error migrating database: " + err.Error())
 	}
 
 	os.Exit(m.Run())
 }
 
-// Create a transaction within which the GormRepository interface may be tested using gorm itself
+// Create a transaction within which the gormBoardRepository interface may be tested using gorm itself
 func TempTransaction(callback func (domain.BoardRepository, *gorm.DB)) {
-	err := DB.Transaction(func(tx *gorm.DB) error {
-		repo := NewGormRepository(tx)
+	err := db.Transaction(func(tx *gorm.DB) error {
+		repo := NewGormBoardRepository(tx)
 		callback(repo, tx)
-		return Rollback
+		return rollback
 	})
-	if err != nil && !errors.Is(err, Rollback) {
+	if err != nil && !errors.Is(err, rollback) {
+		// should never happen
 		panic(err)
 	}
 }
@@ -70,8 +66,10 @@ func TestListBoards(t *testing.T) {
 		}
 
 		for _, board := range boards {
-			err := p.SaveBoard(&board)
-			assert.That(err).IsNil()
+			err := p.CreateBoard(&board)
+			if err != nil {
+				t.Fatalf("CreateBoard failed: %+v", err)
+			}
 		}
 
 		results, err := p.ListBoards()
@@ -91,12 +89,16 @@ func TestCreateBoard(t *testing.T) {
 			Height: 300,
 		}
 
-		err := p.SaveBoard(board)
+		err := p.CreateBoard(board)
+		if err != nil {
+			t.Errorf("CreateBoard returned error: %+v", err)
+		}
 
 		board, err = p.GetBoardByID(board.ID)
-		assert.That(err).IsNil()
+		if err != nil {
+			t.Errorf("GetBoardByID %v returned error: %+v", board.ID, err)
+		}
 
-		assert.That(err).IsNil()
 		assert.That(board).IsNotNil()
 		assert.ThatUint64(uint64(board.ID)).IsNonZero()
 		assert.ThatString(board.Name).IsEqualTo("My Awesome Board")
@@ -113,20 +115,27 @@ func TestUpdateBoard(t *testing.T) {
 			Width:  200,
 			Height: 300,
 		}
-		err := p.SaveBoard(board)
-		assert.That(err).IsNil()
+		err := p.CreateBoard(board)
+		if err != nil {
+			t.Fatalf("CreateBoard returned error: %+v", err)
+		}
 
 		originalID := board.ID
 
-		board.Name = "New Name"
-		board.Width = 123
-		board.Height = 321
-
-		err = p.SaveBoard(board)
-		assert.That(err).IsNil()
+		err = p.UpdateBoard(originalID, func (board *domain.Board) (*domain.Board, error) {
+			board.Name = "New Name"
+			board.Width = 123
+			board.Height = 321
+			return board, nil
+		})
+		if err != nil {
+			t.Fatalf("UpdateBoard returned error: %+v", err)
+		}
 
 		board, err = p.GetBoardByID(board.ID)
-		assert.That(err).IsNil()
+		if err != nil {
+			t.Fatalf("GetBoardByID returned error: %+v", err)
+		}
 
 		assert.That(board.ID).IsEqualTo(originalID)
 		assert.ThatString(board.Name).IsEqualTo("New Name")
@@ -141,14 +150,14 @@ func TestDeleteBoardByIDDeletesNestedRecords(t *testing.T) {
 		board := domain.Board{
 			Name: "Test Board",
 		}
-		err := p.SaveBoard(&board)
+		err := p.CreateBoard(&board)
 		assert.That(err).IsNil()
 
 		city := domain.City{
 			BoardID: board.ID,
 			Name: "Test City",
 		}
-		err = p.SaveCity(&city)
+		err = p.CreateCity(&city)
 		assert.That(err).IsNil()
 
 		space := domain.CitySpace{
@@ -156,7 +165,7 @@ func TestDeleteBoardByIDDeletesNestedRecords(t *testing.T) {
 			Order:     1,
 			SpaceType: domain.TraderID,
 		}
-		err = p.SaveCitySpace(&space)
+		err = p.CreateCitySpace(&space)
 		assert.That(err).IsNil()
 
 		err = p.DeleteBoardByID(board.ID)
@@ -182,29 +191,64 @@ func TestDeleteBoardByIDDeletesNestedRecords(t *testing.T) {
 func TestListCitiesByBoardId(t *testing.T) {
 	assert := assert.New(t)
 	TempTransaction(func (p domain.BoardRepository, tx *gorm.DB) {
-		testData := insertTestData()
-		createTestCityWithSpaces(testData.EmptyBoard.ID)
-		board := testData.BoardWithCities
+		board := createTestBoard()
+		createTestCityWithSpaces(board.ID)
 
 		results, err := p.ListCitiesByBoardID(board.ID)
 		assert.That(err).IsNil()
-		assert.ThatInt(len(results)).IsEqualTo(len(testData.BoardWithCitiesCities))
+		assert.ThatInt(len(results)).IsEqualTo(1)
 		assert.ThatInt(len(results[0].CitySpaces)).IsGreaterThan(0)
 	})
 }
 
-func TestSaveCity(t *testing.T) {
+func TestCreateCity(t *testing.T) {
 	assert := assert.New(t)
+	TempTransaction(func(p domain.BoardRepository, tx *gorm.DB) {
+		board := createTestBoard()
+
+		city := domain.City{
+			BoardID: board.ID,
+			Name: "New City Name",
+			Position: domain.Position{
+				X: 123,
+				Y: 432,
+			},
+		}
+
+		err := p.CreateCity(&city)
+		assert.That(err).IsNil()
+
+		var updatedCity domain.City
+		if err := tx.Find(&updatedCity, city.ID).Error; err != nil {
+			panic(err)
+		}
+
+		if updatedCity.Name != "New City Name" {
+			t.Error("City Name was not updated")
+		}
+		if updatedCity.Position.X != 123 {
+			t.Error("City Position X was not updated")
+		}
+		if updatedCity.Position.Y != 432 {
+			t.Error("City Position Y was not updated")
+		}
+	})
+}
+
+func TestUpdateCity(t *testing.T) {
 	TempTransaction(func(p domain.BoardRepository, tx *gorm.DB) {
 		board := createTestBoard()
 		city := createTestCity(board.ID)
 
-		city.Name = "New City Name"
-		city.Position.X = 123
-		city.Position.Y = 432
-
-		err := p.SaveCity(city)
-		assert.That(err).IsNil()
+		err := p.UpdateCity(city, func(city *domain.City) (*domain.City, error) {
+			city.Name = "New City Name"
+			city.Position.X = 123
+			city.Position.Y = 432
+			return city, nil
+		})
+		if err != nil {
+			t.Fatalf("UpdateCity returned error: %+v", err)
+		}
 
 		var updatedCity domain.City
 		if err := tx.Find(&updatedCity, city.ID).Error; err != nil {
@@ -248,7 +292,7 @@ func TestSaveCitySpace(t *testing.T) {
 			SpaceType: domain.MerchantID,
 			RequiredPrivilege: 2,
 		}
-		err := p.SaveCitySpace(&space)
+		err := p.CreateCitySpace(&space)
 		assert.That(err).IsNil()
 
 		city, err = p.GetCityByID(city.ID)
@@ -273,41 +317,17 @@ func TestDeleteCitySpaceByIDSucceeds(t *testing.T) {
 			SpaceType: domain.MerchantID,
 			RequiredPrivilege: 2,
 		}
-		err := p.SaveCitySpace(&space)
+		err := p.CreateCitySpace(&space)
 		assert.That(err).IsNil()
 
-		p.DeleteCitySpaceByID(space.ID)
+		err = p.DeleteCitySpaceByID(space.ID)
+		assert.That(err).IsNil()
 
 		city, err = p.GetCityByID(city.ID)
 		assert.That(err).IsNil()
 
-		space = city.CitySpaces[0]
-		assert.That(space.SpaceType).IsEqualTo(domain.MerchantID)
-		assert.ThatInt(space.RequiredPrivilege).IsEqualTo(2)
-		assert.ThatInt(space.Order).IsEqualTo(1)
+		assert.ThatInt(len(city.CitySpaces)).IsEqualTo(0)
 	})
-}
-
-type TestData struct {
-	EmptyBoard            domain.Board
-	BoardWithCities       domain.Board
-	BoardWithCitiesCities []domain.City
-}
-
-func insertTestData() TestData {
-	emptyBoard := *createTestBoard()
-	boardWithCities := *createTestBoard()
-
-	cities := make([]domain.City, 0, 2)
-	for i := 0; i < 2; i++ {
-		cities = append(cities, *createTestCity(boardWithCities.ID))
-	}
-
-	return TestData{
-		EmptyBoard:            emptyBoard,
-		BoardWithCities:       boardWithCities,
-		BoardWithCitiesCities: cities,
-	}
 }
 
 var testBoardCounter = 0
@@ -319,7 +339,7 @@ func createTestBoard() *domain.Board {
 		Height: 20,
 	}
 	testBoardCounter++
-	if err := DB.Save(&board).Error; err != nil {
+	if err := db.Save(&board).Error; err != nil {
 		panic(err)
 	}
 	return &board
@@ -331,7 +351,7 @@ func createTestCity(boardID uint) *domain.City {
 		Name:    "Test City",
 	}
 
-	if err := DB.Save(&city).Error; err != nil {
+	if err := db.Save(&city).Error; err != nil {
 		panic(err)
 	}
 
@@ -362,7 +382,7 @@ func createTestCityWithSpaces(boardID uint) *domain.City {
 		},
 	}
 
-	if err := DB.Save(city.CitySpaces).Error; err != nil {
+	if err := db.Save(city.CitySpaces).Error; err != nil {
 		panic(err)
 	}
 

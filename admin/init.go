@@ -7,7 +7,7 @@ import (
 
 var (
 	formDecoder *schema.Decoder
-	boardRepository *domain.BoardRepository
+	boardRepository domain.BoardRepository
 	config      Config
 )
 
@@ -17,7 +17,7 @@ type Config struct {
 	IPWhitelist  []string
 }
 
-func Init(config_ Config, boardRepo *domain.BoardRepository) {
+func Init(config_ Config, boardRepo domain.BoardRepository) {
 	formDecoder = schema.NewDecoder()
 	boardRepository = boardRepo
 	config = config_
