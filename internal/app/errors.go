@@ -6,6 +6,9 @@ import (
 	"gorm.io/gorm"
 )
 
+var ErrInvalidForm = errors.New("invalid form error")
+var ErrNameTaken = errors.New("name already taken")
+
 type RecordNotFound struct {
 	name string
 	id ID

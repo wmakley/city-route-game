@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 		panic("Error connecting to database: " + err.Error())
 	}
 
-	if err := db.AutoMigrate(models()...); err != nil {
+	if err := db.AutoMigrate(Models()...); err != nil {
 		panic("Error migrating database: " + err.Error())
 	}
 
@@ -109,6 +109,45 @@ func TestCreateBoard(t *testing.T) {
 		assert.ThatInt(board.Width).IsEqualTo(200)
 		assert.ThatInt(board.Height).IsEqualTo(300)
 	})
+}
+
+func TestCreateBoardReturnsErrorOnDuplicateName(t *testing.T) {
+	var beginCount int64
+	err := db.Model(&Board{}).Count(&beginCount).Error
+	if err != nil {
+		panic(err)
+	}
+
+	assert := assert.New(t)
+	TempTransaction(func(r app.BoardCrudRepository, tx *gorm.DB) {
+		board1 := app.Board{
+			Name:   "My Awesome Board",
+			Width:  200,
+			Height: 300,
+		}
+
+		err := r.CreateBoard(&board1)
+		if err != nil {
+			t.Fatalf("CreateBoard returned error: %+v", err)
+		}
+
+		board2 := app.Board{
+			Name:   "My Awesome Board",
+			Width:  200,
+			Height: 300,
+		}
+		err = r.CreateBoard(&board2)
+		if err != app.ErrNameTaken {
+			t.Error("Expected ErrNameTaken to be returned for duplicate board name")
+		}
+	})
+
+	var endCount int64
+	err = db.Model(&Board{}).Count(&endCount).Error
+	if err != nil {
+		panic(err)
+	}
+	assert.That(endCount).IsEqualTo(beginCount)
 }
 
 func TestUpdateBoard(t *testing.T) {

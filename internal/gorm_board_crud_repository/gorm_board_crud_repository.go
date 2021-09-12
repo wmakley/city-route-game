@@ -29,6 +29,17 @@ func (p gormBoardRepository) GetBoardByID(id app.ID) (*app.Board, error) {
 }
 
 func (p gormBoardRepository) CreateBoard(board *app.Board) error {
+	var dupe Board
+	err := p.db.First(&dupe, "name = ?", board.Name).Error
+	if err == nil {
+		return app.ErrNameTaken
+	}
+	if !errors.Is(gorm.ErrRecordNotFound, err) {
+		return err
+	} else if err != nil {
+		return err
+	}
+
 	gormBoard, err := newGormBoardFromDomainBoard(board)
 	if err != nil {
 		return err

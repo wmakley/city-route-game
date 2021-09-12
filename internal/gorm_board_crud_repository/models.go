@@ -8,7 +8,7 @@ import (
 )
 
 // Models Return an empty instance of every model for use with gorm Automigration
-func models() []interface{} {
+func Models() []interface{} {
 	return []interface{}{
 		&Game{},
 		&Board{},

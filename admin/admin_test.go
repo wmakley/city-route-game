@@ -348,7 +348,7 @@ func TestDeleteBoard(t *testing.T) {
 	space := app.CitySpace{
 		CityID:    city.ID,
 		Order:     1,
-		SpaceType: domain.TraderID,
+		SpaceType: app.TraderID,
 	}
 	var err error
 	if err = db.SaveCitySpace(&space); err != nil {

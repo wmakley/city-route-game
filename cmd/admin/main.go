@@ -2,7 +2,6 @@ package main
 
 import (
 	"city-route-game/admin"
-	"city-route-game/domain"
 	"city-route-game/internal/gorm_board_crud_repository"
 	"flag"
 	"fmt"
@@ -43,7 +42,7 @@ func main() {
 	}
 
 	if migrate {
-		err = db.AutoMigrate(domain.Models()...)
+		err = db.AutoMigrate(gorm_board_crud_repository.Models()...)
 		if err != nil {
 			panic("Error migrating gorm_board_crud_repository: " + err.Error())
 		}

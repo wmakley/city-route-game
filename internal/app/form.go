@@ -1,9 +1,5 @@
 package app
 
-import "errors"
-
-var ErrInvalidForm = errors.New("invalid form error")
-
 func NewPostForm(action string) Form {
 	return Form{
 		Action: action,
