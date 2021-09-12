@@ -1,8 +1,6 @@
-package domain
+package app
 
-import (
-	"errors"
-)
+import "errors"
 
 var ErrInvalidForm = errors.New("invalid form error")
 

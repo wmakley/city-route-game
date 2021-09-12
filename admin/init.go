@@ -1,14 +1,14 @@
 package admin
 
 import (
-	"city-route-game/domain"
+	"city-route-game/internal/app"
 	"github.com/gorilla/schema"
 )
 
 var (
-	formDecoder *schema.Decoder
-	boardRepository domain.BoardRepository
-	config      Config
+	formDecoder     *schema.Decoder
+	boardRepository app.BoardCrudRepository
+	config          Config
 )
 
 type Config struct {
@@ -17,7 +17,7 @@ type Config struct {
 	IPWhitelist  []string
 }
 
-func Init(config_ Config, boardRepo domain.BoardRepository) {
+func Init(config_ Config, boardRepo app.BoardCrudRepository) {
 	formDecoder = schema.NewDecoder()
 	boardRepository = boardRepo
 	config = config_

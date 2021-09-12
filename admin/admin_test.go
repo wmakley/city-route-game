@@ -3,10 +3,10 @@ package admin
 import (
 	"bytes"
 	"city-route-game/domain"
-	"city-route-game/repository"
 	"city-route-game/httpassert"
+	"city-route-game/internal/app"
+	"city-route-game/repository"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -24,7 +24,7 @@ import (
 var (
 	router   *mux.Router
 	testData TestData
-	db domain.BoardRepository
+	db       app.BoardCrudRepository
 )
 
 func TestMain(m *testing.M) {
@@ -32,19 +32,19 @@ func TestMain(m *testing.M) {
 
 	err := os.Remove(dbPath)
 	if err != nil && !os.IsNotExist(err) {
-		panic("Error deleting prior test repository: " + err.Error())
+		panic("Error deleting prior test gorm_board_crud_repository: " + err.Error())
 	}
 
 	dbConn, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
-		panic("Error connecting to repository: " + err.Error())
+		panic("Error connecting to gorm_board_crud_repository: " + err.Error())
 	}
 
 	err = dbConn.AutoMigrate(domain.Models()...)
 	if err != nil {
-		panic("Error migrating repository: " + err.Error())
+		panic("Error migrating gorm_board_crud_repository: " + err.Error())
 	}
 
 	db = repository.NewGormProvider(dbConn)
@@ -131,7 +131,7 @@ func TestGetBoardById_asJson(t *testing.T) {
 	httpassert.Success(t, w)
 	httpassert.JsonObject(t, w)
 
-	responseJson := domain.Board{}
+	responseJson := app.Board{}
 	if err := json.NewDecoder(w.Body).Decode(&responseJson); err != nil {
 		t.Fatal(err)
 	}
@@ -252,7 +252,7 @@ func TestListCitiesByBoardId(t *testing.T) {
 	httpassert.Success(t, w)
 	httpassert.JsonArray(t, w)
 
-	responseJson := make([]domain.City, 0, len(testData.BoardWithCitiesCities))
+	responseJson := make([]app.City, 0, len(testData.BoardWithCitiesCities))
 	if err := json.NewDecoder(w.Body).Decode(&responseJson); err != nil {
 		panic(err)
 	}
@@ -265,9 +265,9 @@ func TestListCitiesByBoardId(t *testing.T) {
 func TestCreateCity(t *testing.T) {
 	board := createTestBoard()
 	url := fmt.Sprintf("/boards/%d/cities/", board.ID)
-	city := domain.CityForm{
+	city := app.CityForm{
 		Name: "Test City",
-		Position: domain.Position{
+		Position: app.Position{
 			X: 10,
 			Y: 20,
 		},
@@ -300,9 +300,9 @@ func TestUpdateCity(t *testing.T) {
 	newName := "New City Name"
 	newX := 123
 	newY := 432
-	form := domain.CityForm{
+	form := app.CityForm{
 		Name: newName,
-		Position: domain.Position{
+		Position: app.Position{
 			X: newX,
 			Y: newY,
 		},
@@ -326,7 +326,7 @@ func TestUpdateCity(t *testing.T) {
 	}
 	httpassert.JsonContentType(t, w)
 
-	var updatedCity domain.City
+	var updatedCity app.City
 	if err := json.NewDecoder(w.Body).Decode(&updatedCity); err != nil {
 		panic(err)
 	}
@@ -345,7 +345,7 @@ func TestUpdateCity(t *testing.T) {
 func TestDeleteBoard(t *testing.T) {
 	board := createTestBoard()
 	city := createTestCity(board.ID)
-	space := domain.CitySpace{
+	space := app.CitySpace{
 		CityID:    city.ID,
 		Order:     1,
 		SpaceType: domain.TraderID,
@@ -376,7 +376,7 @@ func TestDeleteBoard(t *testing.T) {
 func TestDeleteCity(t *testing.T) {
 	board := createTestBoard()
 	city := createTestCity(board.ID)
-	space := domain.CitySpace{
+	space := app.CitySpace{
 		CityID:    city.ID,
 		Order:     1,
 		SpaceType: domain.TraderID,
@@ -403,12 +403,12 @@ func TestDeleteCity(t *testing.T) {
 		t.Log("Body:", w.Body)
 	}
 
-	cities := make([]domain.City, 0)
+	cities := make([]app.City, 0)
 	if err := db.Find(&cities, city.ID).Error; err != nil {
 		panic(err)
 	}
 
-	spaces := make([]domain.CitySpace, 0)
+	spaces := make([]app.CitySpace, 0)
 	if err := db.Find(&spaces, "city_id = ?", city.ID).Error; err != nil {
 		panic(err)
 	}
@@ -422,16 +422,16 @@ func TestDeleteCity(t *testing.T) {
 }
 
 type TestData struct {
-	EmptyBoard            domain.Board
-	BoardWithCities       domain.Board
-	BoardWithCitiesCities []domain.City
+	EmptyBoard            app.Board
+	BoardWithCities       app.Board
+	BoardWithCitiesCities []app.City
 }
 
 func insertTestData() TestData {
 	emptyBoard := *createTestBoard()
 	boardWithCities := *createTestBoard()
 
-	cities := make([]domain.City, 0, 2)
+	cities := make([]app.City, 0, 2)
 	for i := 0; i < 2; i++ {
 		cities = append(cities, *createTestCity(boardWithCities.ID))
 	}
@@ -445,8 +445,8 @@ func insertTestData() TestData {
 
 var testBoardCounter = 0
 
-func createTestBoard() *domain.Board {
-	board := &domain.Board{
+func createTestBoard() *app.Board {
+	board := &app.Board{
 		Name:   fmt.Sprintf("Test Board %d", testBoardCounter),
 		Width:  10,
 		Height: 20,
@@ -459,8 +459,8 @@ func createTestBoard() *domain.Board {
 	return board
 }
 
-func createTestCity(boardID uint) *domain.City {
-	city := &domain.City{
+func createTestCity(boardID uint) *app.City {
+	city := &app.City{
 		BoardID: boardID,
 		Name:    "Test City",
 	}

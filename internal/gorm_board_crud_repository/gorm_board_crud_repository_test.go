@@ -1,7 +1,7 @@
-package repository
+package gorm_board_crud_repository
 
 import (
-	"city-route-game/domain"
+	"city-route-game/internal/app"
 	"errors"
 	"fmt"
 	"github.com/assertgo/assert"
@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 		panic("Error connecting to database: " + err.Error())
 	}
 
-	if err := db.AutoMigrate(domain.Models()...); err != nil {
+	if err := db.AutoMigrate(models()...); err != nil {
 		panic("Error migrating database: " + err.Error())
 	}
 
@@ -37,9 +37,9 @@ func TestMain(m *testing.M) {
 }
 
 // Create a transaction within which the gormBoardRepository interface may be tested using gorm itself
-func TempTransaction(callback func (domain.BoardRepository, *gorm.DB)) {
+func TempTransaction(callback func (app.BoardCrudRepository, *gorm.DB)) {
 	err := db.Transaction(func(tx *gorm.DB) error {
-		repo := NewGormBoardRepository(tx)
+		repo := NewGormBoardCrudRepository(tx)
 		callback(repo, tx)
 		return rollback
 	})
@@ -51,8 +51,8 @@ func TempTransaction(callback func (domain.BoardRepository, *gorm.DB)) {
 
 func TestListBoards(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func (p domain.BoardRepository, tx *gorm.DB) {
-		boards := []domain.Board{
+	TempTransaction(func (p app.BoardCrudRepository, tx *gorm.DB) {
+		boards := []app.Board{
 			{
 				Name:   "Test Board 1",
 				Width:  10,
@@ -73,7 +73,10 @@ func TestListBoards(t *testing.T) {
 		}
 
 		results, err := p.ListBoards()
-		assert.That(err).IsNil()
+		if err != nil {
+			t.Fatalf("ListBoards returned error: %+v", err)
+		}
+		//t.Logf("Results: %+v", results)
 		assert.ThatInt(len(results)).IsEqualTo(2)
 		assert.ThatString(results[0].Name).IsEqualTo("Test Board 1")
 		assert.ThatString(results[1].Name).IsEqualTo("Test Board 2")
@@ -82,8 +85,8 @@ func TestListBoards(t *testing.T) {
 
 func TestCreateBoard(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func(p domain.BoardRepository, tx *gorm.DB) {
-		board := &domain.Board{
+	TempTransaction(func(p app.BoardCrudRepository, tx *gorm.DB) {
+		board := &app.Board{
 			Name:   "My Awesome Board",
 			Width:  200,
 			Height: 300,
@@ -91,12 +94,13 @@ func TestCreateBoard(t *testing.T) {
 
 		err := p.CreateBoard(board)
 		if err != nil {
-			t.Errorf("CreateBoard returned error: %+v", err)
+			t.Fatalf("CreateBoard returned error: %+v", err)
 		}
 
-		board, err = p.GetBoardByID(board.ID)
+		boardID := board.ID
+		board, err = p.GetBoardByID(boardID)
 		if err != nil {
-			t.Errorf("GetBoardByID %v returned error: %+v", board.ID, err)
+			t.Fatalf("GetBoardByID %v returned error: %+v", boardID, err)
 		}
 
 		assert.That(board).IsNotNil()
@@ -109,8 +113,8 @@ func TestCreateBoard(t *testing.T) {
 
 func TestUpdateBoard(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func(p domain.BoardRepository, tx *gorm.DB) {
-		board := &domain.Board{
+	TempTransaction(func(p app.BoardCrudRepository, tx *gorm.DB) {
+		board := &app.Board{
 			Name:   "Original Name",
 			Width:  200,
 			Height: 300,
@@ -122,7 +126,7 @@ func TestUpdateBoard(t *testing.T) {
 
 		originalID := board.ID
 
-		err = p.UpdateBoard(originalID, func (board *domain.Board) (*domain.Board, error) {
+		board, err = p.UpdateBoard(originalID, func (board *app.Board) (*app.Board, error) {
 			board.Name = "New Name"
 			board.Width = 123
 			board.Height = 321
@@ -146,42 +150,52 @@ func TestUpdateBoard(t *testing.T) {
 
 func TestDeleteBoardByIDDeletesNestedRecords(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func(p domain.BoardRepository, tx *gorm.DB) {
-		board := domain.Board{
+	TempTransaction(func(p app.BoardCrudRepository, tx *gorm.DB) {
+		board := app.Board{
 			Name: "Test Board",
 		}
 		err := p.CreateBoard(&board)
-		assert.That(err).IsNil()
+		if err != nil {
+			t.Fatalf("CreateBoard returned error %+v", err)
+		}
 
-		city := domain.City{
+		city := app.City{
 			BoardID: board.ID,
 			Name: "Test City",
 		}
 		err = p.CreateCity(&city)
-		assert.That(err).IsNil()
+		if err != nil {
+			t.Fatalf("CreateCity returned error %+v", err)
+		}
 
-		space := domain.CitySpace{
+		space := app.CitySpace{
 			CityID:    city.ID,
 			Order:     1,
-			SpaceType: domain.TraderID,
+			SpaceType: app.TraderID,
 		}
 		err = p.CreateCitySpace(&space)
-		assert.That(err).IsNil()
+		if err != nil {
+			t.Fatalf("CreateCitySpace returned error %+v", err)
+		}
 
 		err = p.DeleteBoardByID(board.ID)
-		assert.That(err).IsNil()
+		if err != nil {
+			t.Fatalf("DeleteBoardByID returned error %+v", err)
+		}
 
-		var cities []domain.City
+		var cities []City
 		err = tx.Find(&cities, "board_id = ?", board.ID).Error
-		assert.That(err).IsNil()
+		if err != nil {
+			t.Fatalf("Finding cities by board id returned error %+v", err)
+		}
 		assert.ThatInt(len(cities)).IsEqualTo(0)
 
-		var spaces []domain.CitySpace
+		var spaces []CitySpace
 		err = tx.Find(&spaces, "city_id = ?", city.ID).Error
 		assert.That(err).IsNil()
 		assert.ThatInt(len(spaces)).IsEqualTo(0)
 
-		var boards []domain.Board
+		var boards []Board
 		err = tx.Find(&boards, board.ID).Error
 		assert.That(err).IsNil()
 		assert.ThatInt(len(boards)).IsEqualTo(0)
@@ -190,35 +204,38 @@ func TestDeleteBoardByIDDeletesNestedRecords(t *testing.T) {
 
 func TestListCitiesByBoardId(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func (p domain.BoardRepository, tx *gorm.DB) {
+	TempTransaction(func (p app.BoardCrudRepository, tx *gorm.DB) {
 		board := createTestBoard()
 		createTestCityWithSpaces(board.ID)
 
 		results, err := p.ListCitiesByBoardID(board.ID)
-		assert.That(err).IsNil()
+		if err != nil {
+			t.Fatalf("ListCitiesByBoardID returned error: %+v", err)
+		}
 		assert.ThatInt(len(results)).IsEqualTo(1)
 		assert.ThatInt(len(results[0].CitySpaces)).IsGreaterThan(0)
 	})
 }
 
 func TestCreateCity(t *testing.T) {
-	assert := assert.New(t)
-	TempTransaction(func(p domain.BoardRepository, tx *gorm.DB) {
+	TempTransaction(func(p app.BoardCrudRepository, tx *gorm.DB) {
 		board := createTestBoard()
 
-		city := domain.City{
+		city := app.City{
 			BoardID: board.ID,
 			Name: "New City Name",
-			Position: domain.Position{
+			Position: app.Position{
 				X: 123,
 				Y: 432,
 			},
 		}
 
 		err := p.CreateCity(&city)
-		assert.That(err).IsNil()
+		if err != nil {
+			t.Fatalf("CreateCity returned error: %+v", err)
+		}
 
-		var updatedCity domain.City
+		var updatedCity City
 		if err := tx.Find(&updatedCity, city.ID).Error; err != nil {
 			panic(err)
 		}
@@ -236,11 +253,11 @@ func TestCreateCity(t *testing.T) {
 }
 
 func TestUpdateCity(t *testing.T) {
-	TempTransaction(func(p domain.BoardRepository, tx *gorm.DB) {
+	TempTransaction(func(p app.BoardCrudRepository, tx *gorm.DB) {
 		board := createTestBoard()
 		city := createTestCity(board.ID)
 
-		err := p.UpdateCity(city, func(city *domain.City) (*domain.City, error) {
+		err := p.UpdateCity(city.ID, func(city *app.City) (*app.City, error) {
 			city.Name = "New City Name"
 			city.Position.X = 123
 			city.Position.Y = 432
@@ -250,7 +267,7 @@ func TestUpdateCity(t *testing.T) {
 			t.Fatalf("UpdateCity returned error: %+v", err)
 		}
 
-		var updatedCity domain.City
+		var updatedCity City
 		if err := tx.Find(&updatedCity, city.ID).Error; err != nil {
 			panic(err)
 		}
@@ -269,7 +286,7 @@ func TestUpdateCity(t *testing.T) {
 
 func TestGetCitySpacesByCityID(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func (p domain.BoardRepository, tx *gorm.DB) {
+	TempTransaction(func (p app.BoardCrudRepository, tx *gorm.DB) {
 		board := createTestBoard()
 		city := createTestCityWithSpaces(board.ID)
 
@@ -282,24 +299,28 @@ func TestGetCitySpacesByCityID(t *testing.T) {
 
 func TestSaveCitySpace(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func (p domain.BoardRepository, tx *gorm.DB) {
+	TempTransaction(func (r app.BoardCrudRepository, tx *gorm.DB) {
 		board := createTestBoard()
-		city := createTestCity(board.ID)
+		testCity := createTestCity(board.ID)
 
-		space := domain.CitySpace{
-			CityID: city.ID,
+		space := app.CitySpace{
+			CityID: testCity.ID,
 			Order: 1,
-			SpaceType: domain.MerchantID,
+			SpaceType: app.MerchantID,
 			RequiredPrivilege: 2,
 		}
-		err := p.CreateCitySpace(&space)
-		assert.That(err).IsNil()
+		err := r.CreateCitySpace(&space)
+		if err != nil {
+			t.Fatalf("CreateCitySpace returned error: %+v", err)
+		}
 
-		city, err = p.GetCityByID(city.ID)
-		assert.That(err).IsNil()
+		city, err := r.GetCityByID(testCity.ID)
+		if err != nil {
+			t.Fatalf("GetCityById returned error: %+v", err)
+		}
 
 		space = city.CitySpaces[0]
-		assert.That(space.SpaceType).IsEqualTo(domain.MerchantID)
+		assert.That(space.SpaceType).IsEqualTo(app.MerchantID)
 		assert.ThatInt(space.RequiredPrivilege).IsEqualTo(2)
 		assert.ThatInt(space.Order).IsEqualTo(1)
 	})
@@ -307,14 +328,14 @@ func TestSaveCitySpace(t *testing.T) {
 
 func TestDeleteCitySpaceByIDSucceeds(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func (p domain.BoardRepository, tx *gorm.DB) {
+	TempTransaction(func (p app.BoardCrudRepository, tx *gorm.DB) {
 		board := createTestBoard()
-		city := createTestCity(board.ID)
+		testCity := createTestCity(board.ID)
 
-		space := domain.CitySpace{
-			CityID: city.ID,
+		space := app.CitySpace{
+			CityID: testCity.ID,
 			Order: 1,
-			SpaceType: domain.MerchantID,
+			SpaceType: app.MerchantID,
 			RequiredPrivilege: 2,
 		}
 		err := p.CreateCitySpace(&space)
@@ -323,7 +344,7 @@ func TestDeleteCitySpaceByIDSucceeds(t *testing.T) {
 		err = p.DeleteCitySpaceByID(space.ID)
 		assert.That(err).IsNil()
 
-		city, err = p.GetCityByID(city.ID)
+		city, err := p.GetCityByID(testCity.ID)
 		assert.That(err).IsNil()
 
 		assert.ThatInt(len(city.CitySpaces)).IsEqualTo(0)
@@ -332,8 +353,8 @@ func TestDeleteCitySpaceByIDSucceeds(t *testing.T) {
 
 var testBoardCounter = 0
 
-func createTestBoard() *domain.Board {
-	board := domain.Board{
+func createTestBoard() *Board {
+	board := Board{
 		Name:   fmt.Sprintf("Test Board %d", testBoardCounter),
 		Width:  10,
 		Height: 20,
@@ -345,8 +366,8 @@ func createTestBoard() *domain.Board {
 	return &board
 }
 
-func createTestCity(boardID uint) *domain.City {
-	city := domain.City{
+func createTestCity(boardID uint) *City {
+	city := City{
 		BoardID: boardID,
 		Name:    "Test City",
 	}
@@ -358,26 +379,26 @@ func createTestCity(boardID uint) *domain.City {
 	return &city
 }
 
-func createTestCityWithSpaces(boardID uint) *domain.City {
+func createTestCityWithSpaces(boardID uint) *City {
 	city := createTestCity(boardID)
 
-	city.CitySpaces = []domain.CitySpace{
+	city.CitySpaces = []CitySpace{
 		{
 			CityID:            city.ID,
 			Order:             1,
-			SpaceType:         domain.TraderID,
+			SpaceType:         app.TraderID,
 			RequiredPrivilege: 1,
 		},
 		{
 			CityID:            city.ID,
 			Order:             2,
-			SpaceType:         domain.MerchantID,
+			SpaceType:         app.MerchantID,
 			RequiredPrivilege: 2,
 		},
 		{
 			CityID:            city.ID,
 			Order:             3,
-			SpaceType:         domain.TraderID,
+			SpaceType:         app.TraderID,
 			RequiredPrivilege: 3,
 		},
 	}

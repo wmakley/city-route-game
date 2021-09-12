@@ -1,13 +1,14 @@
-package domain
+package gorm_board_crud_repository
 
 import (
+	"city-route-game/internal/app"
 	"fmt"
 	"gorm.io/gorm"
 	"time"
 )
 
 // Models Return an empty instance of every model for use with gorm Automigration
-func Models() []interface{} {
+func models() []interface{} {
 	return []interface{}{
 		&Game{},
 		&Board{},
@@ -23,11 +24,11 @@ func Models() []interface{} {
 	}
 }
 
-type ConstraintViolation struct {
+type constraintViolation struct {
 	msg string
 }
 
-func (c *ConstraintViolation)Error() string {
+func (c *constraintViolation)Error() string {
 	return c.msg
 }
 
@@ -52,6 +53,41 @@ type Board struct {
 	GameID *uint  `json:"gameId" gorm:"index"`
 	Width  int    `json:"width" gorm:"not null;default:0"`
 	Height int    `json:"height" gorm:"not null;default:0"`
+	Cities []City `json:"cities"`
+}
+
+func newGormBoardFromDomainBoard(board *app.Board) (*Board, error) {
+	if board == nil {
+		panic("board must not be nil")
+	}
+
+	return &Board{
+		Model: Model{
+			ID:        board.ID,
+			CreatedAt: board.CreatedAt,
+			UpdatedAt: board.UpdatedAt,
+		},
+		Name: board.Name,
+		Width: board.Width,
+		Height: board.Height,
+	}, nil
+}
+
+func newDomainBoardFromGormBoard(gormBoard *Board) *app.Board {
+	if gormBoard == nil {
+		panic("gormBoard must not be nil")
+	}
+
+	return &app.Board{
+		Model: app.Model{
+			ID:        gormBoard.ID,
+			CreatedAt: gormBoard.CreatedAt,
+			UpdatedAt: gormBoard.UpdatedAt,
+		},
+		Name: gormBoard.Name,
+		Width: gormBoard.Width,
+		Height: gormBoard.Height,
+	}
 }
 
 func (b *Board)BeforeDelete(tx *gorm.DB) error {
@@ -79,6 +115,71 @@ type City struct {
 	Name       string `json:"name" gorm:"not null"`
 	Position   `json:"position"`
 	CitySpaces []CitySpace `json:"spaces"`
+}
+
+func newGormCityFromAppCity(appCity *app.City)(*City, error) {
+	if appCity == nil {
+		panic("appCity must not be nil")
+	}
+
+	city := City{
+		Model: Model{
+			ID: appCity.ID,
+			CreatedAt: appCity.CreatedAt,
+			UpdatedAt: appCity.UpdatedAt,
+		},
+		BoardID: appCity.BoardID,
+		Name: appCity.Name,
+		Position: Position{
+			X: appCity.Position.X,
+			Y: appCity.Position.Y,
+		},
+		CitySpaces: nil,
+	}
+
+	if appCity.CitySpaces != nil {
+		city.CitySpaces = make([]CitySpace, 0, len(appCity.CitySpaces))
+		for _, space := range appCity.CitySpaces {
+			gormSpace, err := newGormCitySpaceFromAppCitySpace(&space)
+			if err != nil {
+				return nil, err
+			}
+			city.CitySpaces = append(city.CitySpaces, *gormSpace)
+		}
+	}
+
+	return &city, nil
+}
+
+func newAppCityFromGormCity(gormCity *City) *app.City {
+	if gormCity == nil {
+		panic("gormCity must not be nil")
+	}
+
+	city := app.City{
+		Model: app.Model{
+			ID: gormCity.ID,
+			CreatedAt: gormCity.CreatedAt,
+			UpdatedAt: gormCity.UpdatedAt,
+		},
+		BoardID: gormCity.BoardID,
+		Name: gormCity.Name,
+		Position: app.Position{
+			X: gormCity.Position.X,
+			Y: gormCity.Position.Y,
+		},
+		CitySpaces: nil,
+	}
+
+	if gormCity.CitySpaces != nil {
+		city.CitySpaces = make([]app.CitySpace, 0, len(gormCity.CitySpaces))
+		for _, space := range gormCity.CitySpaces {
+			appSpace := *newAppCitySpaceFromGormCitySpace(&space)
+			city.CitySpaces = append(city.CitySpaces, appSpace)
+		}
+	}
+
+	return &city
 }
 
 func (c *City)BeforeSave(tx *gorm.DB) error {
@@ -122,8 +223,36 @@ type CitySpace struct {
 	Model
 	CityID            uint          `json:"cityId" gorm:"not null;uniqueIndex:uidx_city_space_city_id_order"`
 	Order             int           `json:"order" gorm:"not null;index:uidx_city_space_city_id_order"`
-	SpaceType         TradesmanType `json:"spaceType" gorm:"not null;default:1"`
+	SpaceType         app.TradesmanType `json:"spaceType" gorm:"not null;default:1"`
 	RequiredPrivilege int           `json:"requiredPrivilege" gorm:"not null;default:1"`
+}
+
+func newGormCitySpaceFromAppCitySpace(space *app.CitySpace)(*CitySpace, error) {
+	return &CitySpace{
+		Model: Model{
+			ID: space.ID,
+			CreatedAt: space.CreatedAt,
+			UpdatedAt: space.UpdatedAt,
+		},
+		CityID: space.CityID,
+		SpaceType: space.SpaceType,
+		RequiredPrivilege: space.RequiredPrivilege,
+		Order: space.Order,
+	}, nil
+}
+
+func newAppCitySpaceFromGormCitySpace(space *CitySpace)(*app.CitySpace) {
+	return &app.CitySpace{
+		Model: app.Model{
+			ID: space.ID,
+			CreatedAt: space.CreatedAt,
+			UpdatedAt: space.UpdatedAt,
+		},
+		CityID: space.CityID,
+		SpaceType: space.SpaceType,
+		RequiredPrivilege: space.RequiredPrivilege,
+		Order: space.Order,
+	}
 }
 
 // Route Connects two City on a Board
@@ -201,10 +330,10 @@ type PlayerBonusToken struct {
 // Represents a bonus token in the supply, initialized at start of game
 type SupplyBonusToken struct {
 	Model
-	GameID       uint `gorm:"not null;uniqueIndex:uidx_supply_bonus_token"`
+	GameID     uint `gorm:"not null;uniqueIndex:uidx_supply_bonus_token"`
 	BonusTokenID uint `gorm:"not null;index:uidx_supply_bonus_token"`
-	Order        int  `gorm:"not null;index:uidx_supply_bonus_token"`
-	BonusToken   BonusToken
+	Order      int  `gorm:"not null;index:uidx_supply_bonus_token"`
+	BonusToken BonusToken
 }
 
 // Game state
@@ -222,3 +351,4 @@ type BonusToken struct {
 	BonusTokenTypeID uint `gorm:"not null"`
 	Gold             bool `gorm:"not null"`
 }
+

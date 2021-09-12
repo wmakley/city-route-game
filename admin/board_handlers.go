@@ -2,6 +2,7 @@ package admin
 
 import (
 	"city-route-game/domain"
+	"city-route-game/internal/app"
 	"city-route-game/util"
 	"encoding/json"
 	"errors"
@@ -36,7 +37,7 @@ func NewBoardHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateBoardHandler(w http.ResponseWriter, r *http.Request) {
-	var form domain.BoardForm
+	var form app.BoardNameForm
 	var err error
 
 	if err = formDecoder.Decode(&form, r.PostForm); err != nil {
@@ -47,7 +48,7 @@ func CreateBoardHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = domain.CreateBoard(domain.InitialContext(), &form)
 
 	if err != nil {
-		if errors.Is(err, domain.ErrInvalidForm) {
+		if errors.Is(err, app.ErrInvalidForm) {
 			page := NewPageWithData(&form)
 			w.WriteHeader(http.StatusBadRequest)
 			if err = ParseAndExecuteAdminTemplate(w, "boards/new", &page, "boards/_form"); err != nil {
@@ -85,7 +86,7 @@ func GetBoardByIdHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type EditBoardPage struct {
-	BoardForm *domain.BoardForm
+	BoardForm *app.BoardNameForm
 	BoardJSON string
 }
 
@@ -125,7 +126,7 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 	gotJson := strings.HasPrefix(r.Header.Get("Content-Type"), "application/json")
 	respondWithJson := strings.HasPrefix(accept, "application/json")
 
-	var form domain.BoardForm
+	var form app.BoardNameForm
 
 	if gotJson {
 		err := json.NewDecoder(r.Body).Decode(&form)
@@ -141,7 +142,7 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var err error
-	var board *domain.Board
+	var board *app.Board
 
 	if gotJson && form.Name == "" {
 		board, err = domain.UpdateBoardDimensions(domain.InitialContext(), key, &form)
@@ -152,7 +153,7 @@ func UpdateBoardHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		if errors.Is(err, domain.ErrInvalidForm) {
+		if errors.Is(err, app.ErrInvalidForm) {
 			if respondWithJson {
 				body := make(map[string]interface{})
 				body["board"] = board

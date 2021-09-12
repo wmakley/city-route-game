@@ -3,7 +3,7 @@ package main
 import (
 	"city-route-game/admin"
 	"city-route-game/domain"
-	"city-route-game/repository"
+	"city-route-game/internal/gorm_board_crud_repository"
 	"flag"
 	"fmt"
 	"log"
@@ -26,9 +26,9 @@ func main() {
 	var ipWhitelist string
 	flag.StringVar(&listenAddr, "listenaddr", "", "address to listen on (default \"\")")
 	flag.IntVar(&port, "port", 8080, "port to listen on (default 8080)")
-	flag.BoolVar(&migrate, "migrate", false, "Migrate repository on startup")
+	flag.BoolVar(&migrate, "migrate", false, "Migrate gorm_board_crud_repository on startup")
 	flag.StringVar(&assetHost, "assethost", "", "Optional asset host domain")
-	flag.StringVar(&databaseUrl, "repository-url", "host=localhost user=william password=password dbname=hansa_dev port=5432 sslmode=disable TimeZone=UTC", "Database URL")
+	flag.StringVar(&databaseUrl, "gorm_board_crud_repository-url", "host=localhost user=william password=password dbname=hansa_dev port=5432 sslmode=disable TimeZone=UTC", "Database URL")
 	flag.StringVar(&ipWhitelist, "ipwhitelist", "", "Optional IP Whitelist")
 	flag.Parse()
 
@@ -39,19 +39,19 @@ func main() {
 		Logger: logger.Default.LogMode(logger.Error),
 	})
 	if err != nil {
-		panic("Error connecting to repository: " + err.Error())
+		panic("Error connecting to gorm_board_crud_repository: " + err.Error())
 	}
 
 	if migrate {
 		err = db.AutoMigrate(domain.Models()...)
 		if err != nil {
-			panic("Error migrating repository: " + err.Error())
+			panic("Error migrating gorm_board_crud_repository: " + err.Error())
 		}
 
 		fmt.Println("Database migration successful!")
 	}
 
-	boardRepo := repository.NewGormBoardRepository(db)
+	boardRepo := gorm_board_crud_repository.NewGormBoardCrudRepository(db)
 
 	var splitIPs []string
 	if ipWhitelist != "" {

@@ -1,8 +1,8 @@
 package admin
 
 import (
-	"city-route-game/domain"
 	city2 "city-route-game/domain/city"
+	"city-route-game/internal/app"
 	"city-route-game/util"
 	"encoding/json"
 	"net/http"
@@ -16,8 +16,8 @@ func ListCitiesHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	boardId := vars["boardId"]
 
-	var board domain.Board
-	var cities []domain.City
+	var board app.Board
+	var cities []app.City
 
 	err := db.Transaction(func(tx *gorm.DB) error {
 		err := db.First(&board, boardId).Error
@@ -46,7 +46,7 @@ func CreateCityHandler(w http.ResponseWriter, r *http.Request) {
 	boardId := vars["boardId"]
 
 	var err error
-	var cityForm domain.CityForm
+	var cityForm app.CityForm
 
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
@@ -54,7 +54,7 @@ func CreateCityHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	var city domain.City
+	var city app.City
 
 	err = db.Transaction(func(tx *gorm.DB) error {
 		city, err = city2.CreateCity(tx, boardId, &cityForm)
@@ -81,7 +81,7 @@ func UpdateCityHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	var cityForm domain.CityForm
+	var cityForm app.CityForm
 
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
@@ -90,7 +90,7 @@ func UpdateCityHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	cityForm.ID = uint(cityId)
 
-	var city domain.City
+	var city app.City
 	err = db.Transaction(func(tx *gorm.DB) error {
 		var err error
 
