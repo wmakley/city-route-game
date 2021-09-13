@@ -20,7 +20,7 @@ func (p gormBoardRepository) GetBoardByID(id app.ID) (*app.Board, error) {
 	var board Board
 	if err := p.db.First(&board, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, app.NewBoardNotFoundError(id, err)
+			return nil, app.NewBoardNotFoundError(id)
 		} else {
 			return nil, err
 		}
@@ -29,23 +29,29 @@ func (p gormBoardRepository) GetBoardByID(id app.ID) (*app.Board, error) {
 }
 
 func (p gormBoardRepository) CreateBoard(board *app.Board) error {
-	var dupe Board
-	err := p.db.First(&dupe, "name = ?", board.Name).Error
-	if err == nil {
-		return app.ErrNameTaken
-	}
-	if !errors.Is(gorm.ErrRecordNotFound, err) {
-		return err
-	} else if err != nil {
-		return err
-	}
+	var gormBoard *Board
+	err := p.db.Transaction(func(tx *gorm.DB) error {
+		var dupe Board
+		err := tx.First(&dupe, "name = ?", board.Name).Error
+		if err == nil {
+			return app.ErrNameTaken
+		}
+		if !errors.Is(gorm.ErrRecordNotFound, err) {
+			return err
+		}
 
-	gormBoard, err := newGormBoardFromDomainBoard(board)
+		gormBoard, err = newGormBoardFromDomainBoard(board)
+		if err != nil {
+			return err
+		}
+
+		if err := tx.Save(gormBoard).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
-		return err
-	}
-
-	if err := p.db.Save(gormBoard).Error; err != nil {
 		return err
 	}
 
@@ -75,6 +81,16 @@ func (p gormBoardRepository) UpdateBoard(id app.ID, updateFn func (board *app.Bo
 		}
 		if updatedBoard == nil {
 			panic("updateFn returned nil board and nil error")
+		}
+
+		// check for duplicates
+		var dupe Board
+		err = tx.First(&dupe, "id <> ? and name = ?", id, updatedBoard.Name).Error
+		if err == nil {
+			return app.ErrNameTaken
+		}
+		if !errors.Is(gorm.ErrRecordNotFound, err) {
+			return err
 		}
 
 		updatedGormBoard, err := newGormBoardFromDomainBoard(updatedBoard)
@@ -118,7 +134,7 @@ func (p gormBoardRepository) DeleteBoardByID(id app.ID) error {
 
 		if err = p.db.First(&board, id).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return app.NewBoardNotFoundError(id, err)
+				return app.NewBoardNotFoundError(id)
 			}
 			return err
 		}

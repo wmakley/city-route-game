@@ -152,20 +152,20 @@ func TestCreateBoardReturnsErrorOnDuplicateName(t *testing.T) {
 
 func TestUpdateBoard(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func(p app.BoardCrudRepository, tx *gorm.DB) {
+	TempTransaction(func(r app.BoardCrudRepository, tx *gorm.DB) {
 		board := &app.Board{
 			Name:   "Original Name",
 			Width:  200,
 			Height: 300,
 		}
-		err := p.CreateBoard(board)
+		err := r.CreateBoard(board)
 		if err != nil {
 			t.Fatalf("CreateBoard returned error: %+v", err)
 		}
 
 		originalID := board.ID
 
-		board, err = p.UpdateBoard(originalID, func (board *app.Board) (*app.Board, error) {
+		board, err = r.UpdateBoard(originalID, func (board *app.Board) (*app.Board, error) {
 			board.Name = "New Name"
 			board.Width = 123
 			board.Height = 321
@@ -175,7 +175,7 @@ func TestUpdateBoard(t *testing.T) {
 			t.Fatalf("UpdateBoard returned error: %+v", err)
 		}
 
-		board, err = p.GetBoardByID(board.ID)
+		board, err = r.GetBoardByID(board.ID)
 		if err != nil {
 			t.Fatalf("GetBoardByID returned error: %+v", err)
 		}
@@ -184,6 +184,23 @@ func TestUpdateBoard(t *testing.T) {
 		assert.ThatString(board.Name).IsEqualTo("New Name")
 		assert.ThatInt(board.Width).IsEqualTo(123)
 		assert.ThatInt(board.Height).IsEqualTo(321)
+
+
+		dupe := app.Board{
+			Name:   "Imadupe",
+		}
+		err = r.CreateBoard(&dupe)
+		if err != nil {
+			t.Fatalf("CreateBoard returned error: %+v", err)
+		}
+
+		board, err = r.UpdateBoard(originalID, func (board *app.Board) (*app.Board, error) {
+			board.Name = "Imadupe"
+			return board, nil
+		})
+		if err != app.ErrNameTaken {
+			t.Errorf("Expected updating name to be same as other board to fail (err: %+v)", err)
+		}
 	})
 }
 

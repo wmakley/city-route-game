@@ -3,48 +3,39 @@ package app
 import (
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 )
 
-var ErrInvalidForm = errors.New("invalid form error")
+// ErrInvalidForm Error to be returned by BoardEditorService on invalid user input
+var ErrInvalidForm = errors.New("invalid form (check form object errors)")
+
+// ErrNameTaken Error to be returned by BoardCrudRepository upon attempt to create
+// or update a board with a duplicate name
 var ErrNameTaken = errors.New("name already taken")
 
 type RecordNotFound struct {
-	name string
-	id ID
-	cause error
+	Name string
+	ID ID
 }
 
 func (e RecordNotFound) Error() string {
-	return fmt.Sprint(e.name, " with id ", e.id, " not found")
+	return fmt.Sprint(e.Name, " with id ", e.ID, " not found")
 }
 
 func (e RecordNotFound) Is(target error) bool {
-	_, isDirectMatch := target.(RecordNotFound)
-	if isDirectMatch {
-		return true
-	}
-
-	// Treat gorm not found errors as though they are this error
-	return errors.Is(gorm.ErrRecordNotFound, target)
+	_, sameType := target.(RecordNotFound)
+	return sameType
 }
 
-func (e RecordNotFound) Unwrap() error {
-	return e.cause
-}
-
-func NewBoardNotFoundError(id ID, cause error) error {
+func NewBoardNotFoundError(id ID) error {
 	return &RecordNotFound{
-		name: "Board",
-		id: id,
-		cause: cause,
+		Name: "Board",
+		ID: id,
 	}
 }
 
-func NewRecordNotFoundError(name string, id ID, cause error) error {
+func NewRecordNotFoundError(name string, id ID) error {
 	return &RecordNotFound{
-		name: name,
-		id: id,
-		cause: cause,
+		Name: name,
+		ID: id,
 	}
 }

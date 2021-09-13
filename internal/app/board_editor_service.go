@@ -1,6 +1,8 @@
 package app
 
-import "errors"
+import (
+	"errors"
+)
 
 type BoardEditorService interface {
 	FindAll() ([]Board, error)
@@ -48,9 +50,9 @@ func (s boardEditorService)CreateBoard(form *BoardNameForm) (*Board, error) {
 
 	err := s.repo.CreateBoard(&board)
 	if err != nil {
-		if errors.Is(ErrNameTaken, err) {
+	if errors.Is(ErrNameTaken, err) {
 			form.AddError("name", "is already taken")
-			return nil, err
+			return nil, ErrInvalidForm
 		}
 
 		return nil, err
