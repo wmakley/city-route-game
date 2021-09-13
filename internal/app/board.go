@@ -1,10 +1,23 @@
 package app
 
 import (
+	"fmt"
+	"strconv"
 	"time"
 )
 
-type ID = uint
+type ID = uint64
+
+func NewIDFromString(str string) (ID, error) {
+	id, err := strconv.ParseUint(str, 0, 64)
+	if err != nil {
+		return 0, ErrInvalidIDString{
+			Msg:   fmt.Sprintf("invalid ID string: %s", err.Error()),
+			Cause: err,
+		}
+	}
+	return ID(id), nil
+}
 
 type TradesmanType = uint
 

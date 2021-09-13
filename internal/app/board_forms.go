@@ -27,7 +27,7 @@ func NewBoardNameForm(board *Board) BoardNameForm {
 
 type BoardNameForm struct {
 	Form   `json:"-"`
-	ID     uint   `json:"id"`
+	ID     ID   `json:"id"`
 	Name   string `json:"name"`
 }
 
@@ -61,7 +61,7 @@ func NewBoardDimensionsForm(board *Board) BoardDimensionsForm {
 
 type BoardDimensionsForm struct {
 	Form `json:"-"`
-	ID uint `json:"id"`
+	ID ID `json:"id"`
 	Width  int `json:"width"`
 	Height int `json:"height"`
 }

@@ -35,10 +35,12 @@ func (c *constraintViolation)Error() string {
 // Model is a simpler version of gorm.Model with JSON tags and without the DeletedAt column.
 // When we delete, we mean it!
 type Model struct {
-	ID        uint      `json:"id" gorm:"primarykey"`
+	ID        ID    `json:"id" gorm:"primarykey"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
+
+type ID = app.ID
 
 // Position is a shared mixin with X and Y
 type Position struct {
@@ -50,7 +52,7 @@ type Position struct {
 type Board struct {
 	Model
 	Name   string `json:"name" gorm:"not null;uniqueIndex"`
-	GameID *uint  `json:"gameId" gorm:"index"`
+	GameID *ID  `json:"gameId" gorm:"index"`
 	Width  int    `json:"width" gorm:"not null;default:0"`
 	Height int    `json:"height" gorm:"not null;default:0"`
 	Cities []City `json:"cities"`
@@ -111,7 +113,7 @@ func (b *Board)BeforeDelete(tx *gorm.DB) error {
 // City part of the Board structure
 type City struct {
 	Model
-	BoardID    uint   `json:"boardId" gorm:"not null;index"`
+	BoardID    ID   `json:"boardId" gorm:"not null;index"`
 	Name       string `json:"name" gorm:"not null"`
 	Position   `json:"position"`
 	CitySpaces []CitySpace `json:"spaces"`
@@ -184,7 +186,7 @@ func newAppCityFromGormCity(gormCity *City) *app.City {
 
 func (c *City)BeforeSave(tx *gorm.DB) error {
 	// Ensure board exists
-	var result []uint
+	var result []uint64
 	err := tx.Table("boards").
 		Where("id = ?", c.BoardID).
 		Limit(1).
@@ -221,7 +223,7 @@ func (c *City)BeforeDelete(tx *gorm.DB) error {
 // CitySpace Part of a City, which is part of Board
 type CitySpace struct {
 	Model
-	CityID            uint          `json:"cityId" gorm:"not null;uniqueIndex:uidx_city_space_city_id_order"`
+	CityID            ID          `json:"cityId" gorm:"not null;uniqueIndex:uidx_city_space_city_id_order"`
 	Order             int           `json:"order" gorm:"not null;index:uidx_city_space_city_id_order"`
 	SpaceType         app.TradesmanType `json:"spaceType" gorm:"not null;default:1"`
 	RequiredPrivilege int           `json:"requiredPrivilege" gorm:"not null;default:1"`
@@ -258,8 +260,8 @@ func newAppCitySpaceFromGormCitySpace(space *CitySpace)(*app.CitySpace) {
 // Route Connects two City on a Board
 type Route struct {
 	Model
-	StartCityID uint         `json:"startCityId" gorm:"not null;index"`
-	EndCityID   uint         `json:"endCityId" gorm:"not null;index"`
+	StartCityID ID         `json:"startCityId" gorm:"not null;index"`
+	EndCityID   ID         `json:"endCityId" gorm:"not null;index"`
 	TavernFlag  bool         `json:"tavernFlag" gorm:"not null;default:0"`
 	RouteSpaces []RouteSpace `json:"spaces"`
 }
@@ -274,7 +276,7 @@ func (r *Route)BeforeDelete(tx *gorm.DB) error {
 // RouteSpace part of the board structure
 type RouteSpace struct {
 	Model
-	RouteID uint `json:"routeId" gorm:"not null;uniqueIndex:uidx_route_space_route_order"`
+	RouteID ID `json:"routeId" gorm:"not null;uniqueIndex:uidx_route_space_route_order"`
 	Order   int  `json:"order" gorm:"not null;index:uidx_route_space_route_order"`
 }
 
@@ -282,16 +284,16 @@ type RouteSpace struct {
 type Game struct {
 	Model
 	Name             string `json:"name" gorm:"not null;index"`
-	Coellen1PlayerID *uint
-	Coellen2PlayerID *uint
-	Coellen3PlayerID *uint
-	Coellen4PlayerID *uint
+	Coellen1PlayerID *ID
+	Coellen2PlayerID *ID
+	Coellen3PlayerID *ID
+	Coellen4PlayerID *ID
 }
 
 // Player is part of the game state
 type Player struct {
 	Model
-	GameID uint   `json:"gameId" gorm:"uniqueIndex:uidx_game_id_player_name"`
+	GameID ID   `json:"gameId" gorm:"uniqueIndex:uidx_game_id_player_name"`
 	Name   string `json:"name" gorm:"not null;index:uidx_game_id_player_name"`
 	Color  string `json:"color" gorm:"not null"`
 	Score  int    `json:"score" gorm:"not null;default:0"`
@@ -301,8 +303,8 @@ type Player struct {
 // todo: unique index on game id and player id
 type PlayerBoard struct {
 	Model
-	GameID            uint `json:"gameId" gorm:"uniqueIndex:uidx_player_board"`
-	PlayerID          uint `json:"playerId" gorm:"index:uidx_player_board"`
+	GameID            ID `json:"gameId" gorm:"uniqueIndex:uidx_player_board"`
+	PlayerID          ID `json:"playerId" gorm:"index:uidx_player_board"`
 	Merchants         int  `gorm:"not null;default:0"`
 	Traders           int  `gorm:"not null;default:0"`
 	MerchantSupply    int  `gorm:"not null;default:0"`
@@ -313,15 +315,15 @@ type PlayerBoard struct {
 	KnowledgeLevel    int  `gorm:"not null;default:1"`
 	CityKeyLevel      int  `gorm:"not null;default:1"`
 	PrivilegeLevel    int  `gorm:"not null;default:1"`
-	PlateBonusTokenID *uint
+	PlateBonusTokenID *ID
 }
 
 // Game state
 // Join table between players and bonus tokens
 type PlayerBonusToken struct {
 	Model
-	PlayerID     uint `json:"playerId" gorm:"uniqueIndex:uidx_player_bonus_token"`
-	BonusTokenID uint `json:"bonusTokenId" gorm:"index:uidx_player_bonus_token"`
+	PlayerID     ID `json:"playerId" gorm:"uniqueIndex:uidx_player_bonus_token"`
+	BonusTokenID ID `json:"bonusTokenId" gorm:"index:uidx_player_bonus_token"`
 	BonusToken   BonusToken
 	Played       bool `json:"played" gorm:"not null;default:0"`
 }
@@ -330,8 +332,8 @@ type PlayerBonusToken struct {
 // Represents a bonus token in the supply, initialized at start of game
 type SupplyBonusToken struct {
 	Model
-	GameID     uint `gorm:"not null;uniqueIndex:uidx_supply_bonus_token"`
-	BonusTokenID uint `gorm:"not null;index:uidx_supply_bonus_token"`
+	GameID     ID `gorm:"not null;uniqueIndex:uidx_supply_bonus_token"`
+	BonusTokenID ID `gorm:"not null;index:uidx_supply_bonus_token"`
 	Order      int  `gorm:"not null;index:uidx_supply_bonus_token"`
 	BonusToken BonusToken
 }
@@ -339,16 +341,16 @@ type SupplyBonusToken struct {
 // Game state
 type RouteBonusToken struct {
 	Model
-	GameID       uint `gorm:"not null;uniqueIndex:uidx_route_bonus_token"`
-	RouteID      uint `gorm:"not null;index:uidx_route_bonus_token"`
-	BonusTokenID uint `gorm:"not null;index:uidx_route_bonus_token"`
+	GameID       ID `gorm:"not null;uniqueIndex:uidx_route_bonus_token"`
+	RouteID      ID `gorm:"not null;index:uidx_route_bonus_token"`
+	BonusTokenID ID `gorm:"not null;index:uidx_route_bonus_token"`
 	BonusToken   BonusToken
 }
 
 // BonusToken represents a single bonus token in the game state
 type BonusToken struct {
 	Model
-	BonusTokenTypeID uint `gorm:"not null"`
+	BonusTokenTypeID ID `gorm:"not null"`
 	Gold             bool `gorm:"not null"`
 }
 

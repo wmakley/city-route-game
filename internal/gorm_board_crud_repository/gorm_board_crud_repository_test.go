@@ -260,11 +260,11 @@ func TestDeleteBoardByIDDeletesNestedRecords(t *testing.T) {
 
 func TestListCitiesByBoardId(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func (p app.BoardCrudRepository, tx *gorm.DB) {
+	TempTransaction(func (r app.BoardCrudRepository, tx *gorm.DB) {
 		board := createTestBoard()
 		createTestCityWithSpaces(board.ID)
 
-		results, err := p.ListCitiesByBoardID(board.ID)
+		results, err := r.ListCitiesByBoardID(board.ID)
 		if err != nil {
 			t.Fatalf("ListCitiesByBoardID returned error: %+v", err)
 		}
@@ -422,7 +422,7 @@ func createTestBoard() *Board {
 	return &board
 }
 
-func createTestCity(boardID uint) *City {
+func createTestCity(boardID ID) *City {
 	city := City{
 		BoardID: boardID,
 		Name:    "Test City",
@@ -435,7 +435,7 @@ func createTestCity(boardID uint) *City {
 	return &city
 }
 
-func createTestCityWithSpaces(boardID uint) *City {
+func createTestCityWithSpaces(boardID ID) *City {
 	city := createTestCity(boardID)
 
 	city.CitySpaces = []CitySpace{

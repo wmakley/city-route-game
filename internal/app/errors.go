@@ -39,3 +39,22 @@ func NewRecordNotFoundError(name string, id ID) error {
 		ID: id,
 	}
 }
+
+
+type ErrInvalidIDString struct {
+	Msg string
+	Cause error
+}
+
+func (e ErrInvalidIDString) Error() string {
+	return e.Msg
+}
+
+func (e ErrInvalidIDString) Is(target error) bool {
+	_, ok := target.(*ErrInvalidIDString)
+	return ok
+}
+
+func (e ErrInvalidIDString) Unwrap() error {
+	return e.Cause
+}

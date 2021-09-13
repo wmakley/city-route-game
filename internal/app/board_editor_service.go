@@ -6,11 +6,11 @@ import (
 
 type BoardEditorService interface {
 	FindAll() ([]Board, error)
-	FindByID(id ID) (*Board, error)
+	FindByID(id string) (*Board, error)
 	CreateBoard(form *BoardNameForm) (*Board, error)
-	UpdateName(id ID, form *BoardNameForm) (*Board, error)
-	UpdateDimensions(id ID, form *BoardDimensionsForm) (*Board, error)
-	DeleteByID(id ID) error
+	UpdateName(id string, form *BoardNameForm) (*Board, error)
+	UpdateDimensions(id string, form *BoardDimensionsForm) (*Board, error)
+	DeleteByID(id string) error
 }
 
 func NewBoardEditorService(boardCrudRepository BoardCrudRepository) BoardEditorService {
@@ -27,7 +27,12 @@ func (s boardEditorService)FindAll() ([]Board, error) {
 	return s.repo.ListBoards()
 }
 
-func (s boardEditorService)FindByID(id ID) (*Board, error) {
+func (s boardEditorService)FindByID(rawId string) (*Board, error) {
+	id, err := NewIDFromString(rawId)
+	if err != nil {
+		return nil, err
+	}
+
 	board, err := s.repo.GetBoardByID(id)
 	if err != nil {
 		return nil, err
@@ -61,7 +66,12 @@ func (s boardEditorService)CreateBoard(form *BoardNameForm) (*Board, error) {
 	return &board, nil
 }
 
-func (s boardEditorService)UpdateDimensions(id ID, form *BoardDimensionsForm) (*Board, error) {
+func (s boardEditorService)UpdateDimensions(rawId string, form *BoardDimensionsForm) (*Board, error) {
+	id, err := NewIDFromString(rawId)
+	if err != nil {
+		return nil, err
+	}
+
 	if form.Width < 0 {
 		form.AddError("Width", "must be greater than or equal to zero")
 	}
@@ -73,7 +83,7 @@ func (s boardEditorService)UpdateDimensions(id ID, form *BoardDimensionsForm) (*
 		return nil, ErrInvalidForm
 	}
 
-	updatedBoard, err := s.repo.UpdateBoard(form.ID, func (board *Board) (*Board, error) {
+	updatedBoard, err := s.repo.UpdateBoard(id, func (board *Board) (*Board, error) {
 		board.Width = form.Width
 		board.Height = form.Height
 		return board, nil
@@ -85,14 +95,19 @@ func (s boardEditorService)UpdateDimensions(id ID, form *BoardDimensionsForm) (*
 	return updatedBoard, nil
 }
 
-func (s boardEditorService)UpdateName(id ID, form *BoardNameForm) (*Board, error) {
+func (s boardEditorService)UpdateName(rawId string, form *BoardNameForm) (*Board, error) {
+	id, err := NewIDFromString(rawId)
+	if err != nil {
+		return nil, err
+	}
+
 	form.NormalizeInputs()
 
 	if !form.IsValid() {
 		return nil, ErrInvalidForm
 	}
 
-	updatedBoard, err := s.repo.UpdateBoard(form.ID, func (board *Board) (*Board, error) {
+	updatedBoard, err := s.repo.UpdateBoard(id, func (board *Board) (*Board, error) {
 		board.Name = form.Name
 		return board, nil
 	})
@@ -107,6 +122,11 @@ func (s boardEditorService)UpdateName(id ID, form *BoardNameForm) (*Board, error
 	return updatedBoard, nil
 }
 
-func (s boardEditorService)DeleteByID(id ID) error {
+func (s boardEditorService)DeleteByID(rawId string) error {
+	id, err := NewIDFromString(rawId)
+	if err != nil {
+		return err
+	}
+
 	return s.repo.DeleteBoardByID(id)
 }

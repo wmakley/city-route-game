@@ -75,7 +75,7 @@ func FindByID(t *testing.T) {
 	repo := fakeBoardCrudRepository{}
 	service := NewBoardEditorService(&repo)
 
-	_, err := service.FindByID(ID(1))
+	_, err := service.FindByID("1")
 	if !errors.Is(RecordNotFound{}, err) {
 		t.Errorf("FindByID with no board should have returned error RecordNotFound, but returned: %+v", err)
 	}
@@ -123,7 +123,7 @@ func FindByID(t *testing.T) {
 	}
 
 	var result *Board
-	result, err = service.FindByID(ID(1))
+	result, err = service.FindByID("1")
 	if err != nil {
 		t.Fatalf("FindByID returned error: %+v", err)
 	}
@@ -225,7 +225,7 @@ func TestUpdateName(t *testing.T) {
 	form := NewBoardNameForm(&repo.Boards[0])
 	form.Name = "Test Name"
 
-	updatedBoard, err := service.UpdateName(1, &form)
+	updatedBoard, err := service.UpdateName("1", &form)
 	if err != nil {
 		t.Errorf("UpdateName with valid name returned error: %+v", err)
 	}
@@ -234,7 +234,7 @@ func TestUpdateName(t *testing.T) {
 	}
 
 	form.Name = ""
-	_, err = service.UpdateName(1, &form)
+	_, err = service.UpdateName("1", &form)
 	if err == nil {
 		t.Error("UpdateName with blank name should have returned an error")
 	} else if !errors.Is(ErrInvalidForm, err) {
@@ -242,7 +242,7 @@ func TestUpdateName(t *testing.T) {
 	}
 
 	form.Name = "   "
-	_, err = service.UpdateName(1, &form)
+	_, err = service.UpdateName("1", &form)
 	if err == nil {
 		t.Error("UpdateName with blank name should have returned an error")
 	} else if !errors.Is(ErrInvalidForm, err) {
@@ -251,7 +251,7 @@ func TestUpdateName(t *testing.T) {
 
 	repo.ErrorResult = ErrNameTaken
 	form.Name = "Duplicate Name"
-	_, err = service.UpdateName(1, &form)
+	_, err = service.UpdateName("1", &form)
 	if !errors.Is(ErrInvalidForm, err) {
 		t.Errorf("UpdateBoard should have returned ErrInvalidForm, was: %+v", err)
 	}
@@ -285,7 +285,7 @@ func TestUpdateDimensions(t *testing.T) {
 	form.Width = 123
 	form.Height = 456
 
-	updatedBoard, err := service.UpdateDimensions(1, &form)
+	updatedBoard, err := service.UpdateDimensions("1", &form)
 	if err != nil {
 		t.Fatalf("UpdateDimensions with valid input returned error: %+v", err)
 	}
@@ -295,7 +295,7 @@ func TestUpdateDimensions(t *testing.T) {
 
 	form.Width = -1
 	form.Height = 0
-	_, err = service.UpdateDimensions(1, &form)
+	_, err = service.UpdateDimensions("1", &form)
 	if err == nil {
 		t.Fatalf("UpdateDimensions with negative width should have returned an error")
 	} else if !errors.Is(ErrInvalidForm, err) {
@@ -304,7 +304,7 @@ func TestUpdateDimensions(t *testing.T) {
 
 	form.Width = 0
 	form.Height = -1
-	_, err = service.UpdateDimensions(1, &form)
+	_, err = service.UpdateDimensions("1", &form)
 	if err == nil {
 		t.Fatalf("UpdateDimensions with negative height should have returned an error")
 	} else if !errors.Is(ErrInvalidForm, err) {
@@ -316,13 +316,13 @@ func TestDeleteByID(t *testing.T) {
 	repo := fakeBoardCrudRepository{}
 	service := NewBoardEditorService(&repo)
 
-	err := service.DeleteByID(1)
+	err := service.DeleteByID("1")
 	if err != nil {
 		t.Error("DeleteByID should have returned nil error when repo returned success")
 	}
 
 	repo.ErrorResult = NewBoardNotFoundError(1)
-	err = service.DeleteByID(1)
+	err = service.DeleteByID("1")
 	if !errors.Is(RecordNotFound{}, err) {
 		t.Errorf("DeleteByID when board doesn't exist should have returned RecordNotFound, was: %+v", err)
 	}
