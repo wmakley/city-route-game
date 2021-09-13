@@ -2,14 +2,16 @@ package app
 
 import (
 	"errors"
+	"strings"
 )
 
 type BoardEditorService interface {
 	FindAll() ([]Board, error)
 	FindByID(id string) (*Board, error)
-	CreateBoard(form *BoardNameForm) (*Board, error)
-	UpdateName(id string, form *BoardNameForm) (*Board, error)
-	UpdateDimensions(id string, form *BoardDimensionsForm) (*Board, error)
+	CreateBoard(form *CreateBoardForm) (*Board, error)
+	Update(id string, form *UpdateBoardForm) (*Board, error)
+	UpdateName(id string, form *UpdateBoardForm) (*Board, error)
+	UpdateDimensions(id string, form *UpdateBoardForm) (*Board, error)
 	DeleteByID(id string) error
 }
 
@@ -40,10 +42,16 @@ func (s boardEditorService)FindByID(rawId string) (*Board, error) {
 	return board, nil
 }
 
-func (s boardEditorService)CreateBoard(form *BoardNameForm) (*Board, error) {
-	form.NormalizeInputs()
+func (s boardEditorService)CreateBoard(form *CreateBoardForm) (*Board, error) {
+	form.Name = strings.TrimSpace(form.Name)
 
-	if !form.IsValid() {
+	if len(form.Name) == 0 {
+		form.AddError("Name", "must not be blank")
+	} else if len(form.Name) > 100 {
+		form.AddError("Name", "is too long; must be 100 characters or less")
+	}
+
+	if form.HasError() {
 		return nil, ErrInvalidForm
 	}
 
@@ -66,7 +74,7 @@ func (s boardEditorService)CreateBoard(form *BoardNameForm) (*Board, error) {
 	return &board, nil
 }
 
-func (s boardEditorService)UpdateDimensions(rawId string, form *BoardDimensionsForm) (*Board, error) {
+func (s boardEditorService)UpdateDimensions(rawId string, form *UpdateBoardForm) (*Board, error) {
 	id, err := NewIDFromString(rawId)
 	if err != nil {
 		return nil, err
@@ -95,19 +103,67 @@ func (s boardEditorService)UpdateDimensions(rawId string, form *BoardDimensionsF
 	return updatedBoard, nil
 }
 
-func (s boardEditorService)UpdateName(rawId string, form *BoardNameForm) (*Board, error) {
+func (s boardEditorService)UpdateName(rawId string, form *UpdateBoardForm) (*Board, error) {
 	id, err := NewIDFromString(rawId)
 	if err != nil {
 		return nil, err
 	}
 
-	form.NormalizeInputs()
+	form.Name = strings.TrimSpace(form.Name)
 
-	if !form.IsValid() {
+	if len(form.Name) == 0 {
+		form.AddError("Name", "must not be blank")
+	} else if len(form.Name) > 100 {
+		form.AddError("Name", "is too long; must be 100 characters or less")
+	}
+
+	if form.HasError() {
 		return nil, ErrInvalidForm
 	}
 
 	updatedBoard, err := s.repo.UpdateBoard(id, func (board *Board) (*Board, error) {
+		board.Name = form.Name
+		return board, nil
+	})
+	if err != nil {
+		if errors.Is(ErrNameTaken, err) {
+			form.AddError("Name", "name is already taken")
+			return nil, ErrInvalidForm
+		}
+		return nil, err
+	}
+
+	return updatedBoard, nil
+}
+
+func (s boardEditorService)Update(rawId string, form *UpdateBoardForm) (*Board, error) {
+	id, err := NewIDFromString(rawId)
+	if err != nil {
+		return nil, err
+	}
+
+	form.Name = strings.TrimSpace(form.Name)
+
+	if len(form.Name) == 0 {
+		form.AddError("Name", "must not be blank")
+	} else if len(form.Name) > 100 {
+		form.AddError("Name", "is too long; must be 100 characters or less")
+	}
+
+	if form.Width < 0 {
+		form.AddError("Width", "must be greater than or equal to zero")
+	}
+	if form.Height < 0 {
+		form.AddError("Height", "must be greater than or equal to zero")
+	}
+
+	if form.HasError() {
+		return nil, ErrInvalidForm
+	}
+
+	updatedBoard, err := s.repo.UpdateBoard(id, func (board *Board) (*Board, error) {
+		board.Name = form.Name
+		board.Width = form.Width
 		board.Name = form.Name
 		return board, nil
 	})

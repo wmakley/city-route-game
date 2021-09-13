@@ -7,15 +7,37 @@ import (
 
 
 
-func NewCreateBoardForm() BoardNameForm {
-	return BoardNameForm{
+func NewCreateBoardForm() CreateBoardForm {
+	return CreateBoardForm{
 		Form: NewPostForm("/boards/"),
 		Name: "",
 	}
 }
 
-func NewBoardNameForm(board *Board) BoardNameForm {
-	return BoardNameForm{
+type UpdateBoardForm struct {
+	Form `json:"-"`
+	ID ID `json:"id"`
+	Name string `json:"name"`
+	Width  int `json:"width"`
+	Height int `json:"height"`
+}
+
+func NewUpdateBoardForm(board *Board) UpdateBoardForm {
+	return UpdateBoardForm{
+		Form: Form{
+			Errors: nil,
+			Action: fmt.Sprintf("/boards/%d", board.ID),
+			Method: "PATCH",
+		},
+		ID: board.ID,
+		Name: board.Name,
+		Width: board.Width,
+		Height: board.Height,
+	}
+}
+
+func NewBoardNameForm(board *Board) UpdateBoardForm {
+	return UpdateBoardForm{
 		Form: Form{
 			Action: fmt.Sprintf("/boards/%d", board.ID),
 			Method: "PATCH",
@@ -25,45 +47,9 @@ func NewBoardNameForm(board *Board) BoardNameForm {
 	}
 }
 
-type BoardNameForm struct {
+type CreateBoardForm struct {
 	Form   `json:"-"`
-	ID     ID   `json:"id"`
 	Name   string `json:"name"`
-}
-
-func (f *BoardNameForm) NormalizeInputs() {
-	f.Name = strings.TrimSpace(f.Name)
-}
-
-func (f *BoardNameForm) IsValid() bool {
-	f.ClearErrors()
-
-	if len(f.Name) == 0 {
-		f.AddError("Name", "must not be blank")
-	} else if len(f.Name) > 100 {
-		f.AddError("Name", "is too long; must be 100 characters or less")
-	}
-
-	return !f.HasError()
-}
-
-func NewBoardDimensionsForm(board *Board) BoardDimensionsForm {
-	return BoardDimensionsForm{
-		Form: Form{
-			Action: fmt.Sprintf("/boards/%d", board.ID),
-			Method: "PATCH",
-		},
-		ID:   board.ID,
-		Width: board.Width,
-		Height: board.Height,
-	}
-}
-
-type BoardDimensionsForm struct {
-	Form `json:"-"`
-	ID ID `json:"id"`
-	Width  int `json:"width"`
-	Height int `json:"height"`
 }
 
 // CityForm JSON format in which cities will be posted from the board editor on create or update.

@@ -281,7 +281,7 @@ func TestUpdateDimensions(t *testing.T) {
 	}
 	service := NewBoardEditorService(&repo)
 
-	form := NewBoardDimensionsForm(&repo.Boards[0])
+	form := NewUpdateBoardForm(&repo.Boards[0])
 	form.Width = 123
 	form.Height = 456
 
