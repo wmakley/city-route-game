@@ -2,8 +2,160 @@ package app
 
 import (
 	"errors"
+	"github.com/assertgo/assert"
 	"testing"
+	"time"
 )
+
+func TestFindAll(t *testing.T) {
+	repo := fakeBoardCrudRepository{}
+	service := NewBoardEditorService(&repo)
+
+	results, err := service.FindAll()
+	if err != nil {
+		t.Fatalf("FindAll returned error: %+v", err)
+	}
+	if len(results) != 0 {
+		t.Error("Results slice should have been empty with no boards created yet")
+	}
+
+	now := time.Now()
+	repo.Boards = []Board{
+		{
+			Model:  Model{
+				ID:        1,
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+			Name:   "Board 1",
+			Width:  10,
+			Height: 20,
+			Cities: nil,
+		},
+		{
+			Model:  Model{
+				ID:        2,
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+			Name:   "Board 2",
+			Width:  30,
+			Height: 40,
+			Cities: nil,
+		},
+	}
+
+	results, err = service.FindAll()
+	if err != nil {
+		t.Fatalf("FindAll returned error: %+v", err)
+	}
+	if len(results) != 2 {
+		t.Errorf("Results length should have been 2 (was %d)", len(results))
+	}
+
+	assert := assert.New(t)
+	assert.That(results[0].ID).IsEqualTo(ID(1))
+	assert.That(results[0].CreatedAt).IsEqualTo(now)
+	assert.That(results[0].UpdatedAt).IsEqualTo(now)
+	assert.That(results[0].Name).IsEqualTo("Board 1")
+	assert.That(results[0].Width).IsEqualTo(10)
+	assert.That(results[0].Height).IsEqualTo(20)
+	assert.ThatInt(len(results[0].Cities)).IsEqualTo(0)
+
+	assert.That(results[1].ID).IsEqualTo(ID(2))
+	assert.That(results[1].CreatedAt).IsEqualTo(now)
+	assert.That(results[1].UpdatedAt).IsEqualTo(now)
+	assert.That(results[1].Name).IsEqualTo("Board 2")
+	assert.That(results[1].Width).IsEqualTo(30)
+	assert.That(results[1].Height).IsEqualTo(40)
+	assert.ThatInt(len(results[1].Cities)).IsEqualTo(0)
+}
+
+func FindByID(t *testing.T) {
+	repo := fakeBoardCrudRepository{}
+	service := NewBoardEditorService(&repo)
+
+	_, err := service.FindByID(ID(1))
+	if !errors.Is(RecordNotFound{}, err) {
+		t.Errorf("FindByID with no board should have returned error RecordNotFound, but returned: %+v", err)
+	}
+
+	now := time.Now()
+	repo.Boards = []Board{
+		{
+			Model:  Model{
+				ID:        1,
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+			Name:   "Board 1",
+			Width:  10,
+			Height: 20,
+			Cities: []City{
+				{
+					Model:      Model{
+						ID:        1,
+						CreatedAt: now,
+						UpdatedAt: now,
+					},
+					BoardID:    1,
+					Name:       "City 1",
+					Position:   Position{
+						X: 111,
+						Y: 222,
+					},
+					CitySpaces: []CitySpace{
+						{
+							Model:             Model{
+								ID:        1,
+								CreatedAt: now,
+								UpdatedAt: now,
+							},
+							CityID:            1,
+							Order:             1,
+							SpaceType:         TraderID,
+							RequiredPrivilege: 1,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	var result *Board
+	result, err = service.FindByID(ID(1))
+	if err != nil {
+		t.Fatalf("FindByID returned error: %+v", err)
+	}
+
+	assert := assert.New(t)
+	assert.That(result.ID).IsEqualTo(ID(1))
+	assert.That(result.CreatedAt).IsEqualTo(now)
+	assert.That(result.UpdatedAt).IsEqualTo(now)
+	assert.That(result.Name).IsEqualTo("Board 1")
+	assert.That(result.Width).IsEqualTo(10)
+	assert.That(result.Height).IsEqualTo(20)
+	assert.ThatInt(len(result.Cities)).IsEqualTo(1)
+
+	city := result.Cities[0]
+	assert.That(city.ID).IsEqualTo(ID(1))
+	assert.That(city.CreatedAt).IsEqualTo(now)
+	assert.That(city.UpdatedAt).IsEqualTo(now)
+	assert.That(city.BoardID).IsEqualTo(ID(1))
+	assert.That(city.Name).IsEqualTo("City 1")
+	assert.That(city.Position.X).IsEqualTo(111)
+	assert.That(city.Position.Y).IsEqualTo(222)
+	assert.ThatInt(len(city.CitySpaces)).IsEqualTo(1)
+
+	space := city.CitySpaces[0]
+	assert.That(space.ID).IsEqualTo(ID(1))
+	assert.That(space.CreatedAt).IsEqualTo(now)
+	assert.That(space.UpdatedAt).IsEqualTo(now)
+	assert.That(space.Order).IsEqualTo(1)
+	assert.That(space.SpaceType).IsEqualTo(TraderID)
+	assert.That(space.CityID).IsEqualTo(ID(1))
+	assert.That(space.RequiredPrivilege).IsEqualTo(1)
+}
 
 func TestCreateBoard(t *testing.T) {
 	repo := fakeBoardCrudRepository{}
@@ -49,6 +201,72 @@ func TestCreateBoard(t *testing.T) {
 	if !ok {
 		t.Error("No error for 'Name' was found in form")
 	}
+}
+
+func TestUpdateName(t *testing.T) {
+	now := time.Now()
+	repo := fakeBoardCrudRepository{
+		Boards: []Board{
+			{
+				Model:  Model{
+					ID: 1,
+					CreatedAt: now,
+					UpdatedAt: now,
+				},
+				Name:   "Original Name",
+				Width:  10,
+				Height: 20,
+				Cities: nil,
+			},
+		},
+	}
+	service := NewBoardEditorService(&repo)
+
+	form := NewUpdateBoardForm(&repo.Boards[0])
+	form.Name = "Test Name"
+
+	updatedBoard, err := service.UpdateName(1, &form)
+	if err != nil {
+		t.Errorf("UpdateName with valid name returned error: %+v", err)
+	}
+	if updatedBoard.Name != "Test Name" {
+		t.Error("new name was not set")
+	}
+
+	form.Name = ""
+	_, err = service.UpdateName(1, &form)
+	if err == nil {
+		t.Error("UpdateName with blank name should have returned an error")
+	} else if !errors.Is(ErrInvalidForm, err) {
+		t.Errorf("UpdateName should have returned ErrInvalidForm, was: %+v", err)
+	}
+
+	form.Name = "   "
+	_, err = service.UpdateName(1, &form)
+	if err == nil {
+		t.Error("UpdateName with blank name should have returned an error")
+	} else if !errors.Is(ErrInvalidForm, err) {
+		t.Errorf("UpdateName should have returned ErrInvalidForm, was: %+v", err)
+	}
+
+	repo.ErrorResult = ErrNameTaken
+	form.Name = "Duplicate Name"
+	_, err = service.UpdateName(1, &form)
+	if !errors.Is(ErrInvalidForm, err) {
+		t.Errorf("UpdateBoard should have returned ErrInvalidForm, was: %+v", err)
+	}
+	_, ok := form.Errors["Name"]
+	if !ok {
+		t.Error("No error for 'Name' was found in form")
+	}
+}
+
+func TestUpdateDimensions(t *testing.T) {
+
+}
+
+func TestDeleteByID(t *testing.T) {
+
 }
 
 type fakeBoardCrudRepository struct {

@@ -72,10 +72,19 @@ func (s boardEditorService)UpdateName(id ID, form *BoardNameForm) (*Board, error
 		return nil, ErrInvalidForm
 	}
 
-	return s.repo.UpdateBoard(form.ID, func (board *Board) (*Board, error) {
+	updatedBoard, err := s.repo.UpdateBoard(form.ID, func (board *Board) (*Board, error) {
 		board.Name = form.Name
 		return board, nil
 	})
+	if err != nil {
+		if errors.Is(ErrNameTaken, err) {
+			form.AddError("Name", "name is already taken")
+			return nil, ErrInvalidForm
+		}
+		return nil, err
+	}
+
+	return updatedBoard, nil
 }
 
 func (s boardEditorService)DeleteByID(id ID) error {
