@@ -71,7 +71,7 @@ func TestFindAll(t *testing.T) {
 	assert.ThatInt(len(results[1].Cities)).IsEqualTo(0)
 }
 
-func FindByID(t *testing.T) {
+func TestFindByID(t *testing.T) {
 	repo := fakeBoardCrudRepository{}
 	service := NewBoardEditorService(&repo)
 
@@ -337,7 +337,13 @@ type fakeBoardCrudRepository struct {
 }
 
 func (r fakeBoardCrudRepository)GetBoardByID(id ID) (*Board, error) {
-	return &r.Boards[0], r.ErrorResult
+	for _, board := range r.Boards {
+		if board.ID == id {
+			return &board, nil
+		}
+	}
+
+	return nil, NewBoardNotFoundError(id)
 }
 func (r fakeBoardCrudRepository)CreateBoard(board *Board) error {
 	return r.ErrorResult
