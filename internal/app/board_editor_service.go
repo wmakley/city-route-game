@@ -62,7 +62,27 @@ func (s boardEditorService)CreateBoard(form *BoardNameForm) (*Board, error) {
 }
 
 func (s boardEditorService)UpdateDimensions(id ID, form *BoardDimensionsForm) (*Board, error) {
-	return nil, nil
+	if form.Width < 0 {
+		form.AddError("Width", "must be greater than or equal to zero")
+	}
+	if form.Height < 0 {
+		form.AddError("Height", "must be greater than or equal to zero")
+	}
+
+	if form.HasError() {
+		return nil, ErrInvalidForm
+	}
+
+	updatedBoard, err := s.repo.UpdateBoard(form.ID, func (board *Board) (*Board, error) {
+		board.Width = form.Width
+		board.Height = form.Height
+		return board, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return updatedBoard, nil
 }
 
 func (s boardEditorService)UpdateName(id ID, form *BoardNameForm) (*Board, error) {

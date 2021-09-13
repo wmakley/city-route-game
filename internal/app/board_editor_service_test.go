@@ -222,7 +222,7 @@ func TestUpdateName(t *testing.T) {
 	}
 	service := NewBoardEditorService(&repo)
 
-	form := NewUpdateBoardForm(&repo.Boards[0])
+	form := NewBoardNameForm(&repo.Boards[0])
 	form.Name = "Test Name"
 
 	updatedBoard, err := service.UpdateName(1, &form)
@@ -262,7 +262,54 @@ func TestUpdateName(t *testing.T) {
 }
 
 func TestUpdateDimensions(t *testing.T) {
+	assert := assert.New(t)
+	now := time.Now()
+	repo := fakeBoardCrudRepository{
+		Boards: []Board{
+			{
+				Model:  Model{
+					ID: 1,
+					CreatedAt: now,
+					UpdatedAt: now,
+				},
+				Name:   "Board 1",
+				Width:  10,
+				Height: 20,
+				Cities: nil,
+			},
+		},
+	}
+	service := NewBoardEditorService(&repo)
 
+	form := NewBoardDimensionsForm(&repo.Boards[0])
+	form.Width = 123
+	form.Height = 456
+
+	updatedBoard, err := service.UpdateDimensions(1, &form)
+	if err != nil {
+		t.Fatalf("UpdateDimensions with valid input returned error: %+v", err)
+	}
+	assert.That(updatedBoard.Name).IsEqualTo("Board 1")
+	assert.That(updatedBoard.Width).IsEqualTo(123)
+	assert.That(updatedBoard.Height).IsEqualTo(456)
+
+	form.Width = -1
+	form.Height = 0
+	_, err = service.UpdateDimensions(1, &form)
+	if err == nil {
+		t.Fatalf("UpdateDimensions with negative width should have returned an error")
+	} else if !errors.Is(ErrInvalidForm, err) {
+		t.Errorf("UpdateDimensions with negative width should have returned ErrInvalidForm, was: %+v", err)
+	}
+
+	form.Width = 0
+	form.Height = -1
+	_, err = service.UpdateDimensions(1, &form)
+	if err == nil {
+		t.Fatalf("UpdateDimensions with negative height should have returned an error")
+	} else if !errors.Is(ErrInvalidForm, err) {
+		t.Errorf("UpdateDimensions with negative height should have returned ErrInvalidForm, was: %+v", err)
+	}
 }
 
 func TestDeleteByID(t *testing.T) {

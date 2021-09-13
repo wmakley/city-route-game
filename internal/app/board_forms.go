@@ -14,7 +14,7 @@ func NewCreateBoardForm() BoardNameForm {
 	}
 }
 
-func NewUpdateBoardForm(board *Board) BoardNameForm {
+func NewBoardNameForm(board *Board) BoardNameForm {
 	return BoardNameForm{
 		Form: Form{
 			Action: fmt.Sprintf("/boards/%d", board.ID),
@@ -45,6 +45,18 @@ func (f *BoardNameForm) IsValid() bool {
 	}
 
 	return !f.HasError()
+}
+
+func NewBoardDimensionsForm(board *Board) BoardDimensionsForm {
+	return BoardDimensionsForm{
+		Form: Form{
+			Action: fmt.Sprintf("/boards/%d", board.ID),
+			Method: "PATCH",
+		},
+		ID:   board.ID,
+		Width: board.Width,
+		Height: board.Height,
+	}
 }
 
 type BoardDimensionsForm struct {
