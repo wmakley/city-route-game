@@ -51,7 +51,7 @@ func (s boardEditorService)CreateBoard(form *BoardNameForm) (*Board, error) {
 	err := s.repo.CreateBoard(&board)
 	if err != nil {
 	if errors.Is(ErrNameTaken, err) {
-			form.AddError("name", "is already taken")
+			form.AddError("Name", "is already taken")
 			return nil, ErrInvalidForm
 		}
 

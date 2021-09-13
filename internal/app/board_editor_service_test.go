@@ -42,10 +42,12 @@ func TestCreateBoard(t *testing.T) {
 	repo.ErrorResult = ErrNameTaken
 	form.Name = "Duplicate Name"
 	_, err = service.CreateBoard(&form)
-	if err == nil {
-		t.Error("CreateBoard with duplicate name should have returned an error")
-	} else if !errors.Is(ErrInvalidForm, err) {
+	if !errors.Is(ErrInvalidForm, err) {
 		t.Errorf("CreateBoard should have returned ErrInvalidForm, was: %+v", err)
+	}
+	_, ok := form.Errors["Name"]
+	if !ok {
+		t.Error("No error for 'Name' was found in form")
 	}
 }
 
