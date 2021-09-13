@@ -313,7 +313,19 @@ func TestUpdateDimensions(t *testing.T) {
 }
 
 func TestDeleteByID(t *testing.T) {
+	repo := fakeBoardCrudRepository{}
+	service := NewBoardEditorService(&repo)
 
+	err := service.DeleteByID(1)
+	if err != nil {
+		t.Error("DeleteByID should have returned nil error when repo returned success")
+	}
+
+	repo.ErrorResult = NewBoardNotFoundError(1)
+	err = service.DeleteByID(1)
+	if !errors.Is(RecordNotFound{}, err) {
+		t.Errorf("DeleteByID when board doesn't exist should have returned RecordNotFound, was: %+v", err)
+	}
 }
 
 type fakeBoardCrudRepository struct {

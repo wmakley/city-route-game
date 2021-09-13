@@ -22,7 +22,7 @@ func (e RecordNotFound) Error() string {
 }
 
 func (e RecordNotFound) Is(target error) bool {
-	_, sameType := target.(RecordNotFound)
+	_, sameType := target.(*RecordNotFound)
 	return sameType
 }
 

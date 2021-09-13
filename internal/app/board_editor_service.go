@@ -108,5 +108,5 @@ func (s boardEditorService)UpdateName(id ID, form *BoardNameForm) (*Board, error
 }
 
 func (s boardEditorService)DeleteByID(id ID) error {
-	return nil
+	return s.repo.DeleteBoardByID(id)
 }
