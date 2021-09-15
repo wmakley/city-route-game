@@ -52,6 +52,7 @@ func TempTransaction(callback func (app.BoardCrudRepository, *gorm.DB)) {
 func TestListBoards(t *testing.T) {
 	assert := assert.New(t)
 	TempTransaction(func (p app.BoardCrudRepository, tx *gorm.DB) {
+		ctx := tx.Statement.Context
 		boards := []app.Board{
 			{
 				Name:   "Test Board 1",
@@ -66,13 +67,13 @@ func TestListBoards(t *testing.T) {
 		}
 
 		for _, board := range boards {
-			err := p.CreateBoard(&board)
+			err := p.CreateBoard(ctx, &board)
 			if err != nil {
 				t.Fatalf("CreateBoard failed: %+v", err)
 			}
 		}
 
-		results, err := p.ListBoards()
+		results, err := p.ListBoards(ctx)
 		if err != nil {
 			t.Fatalf("ListBoards returned error: %+v", err)
 		}
@@ -86,19 +87,20 @@ func TestListBoards(t *testing.T) {
 func TestCreateBoard(t *testing.T) {
 	assert := assert.New(t)
 	TempTransaction(func(p app.BoardCrudRepository, tx *gorm.DB) {
+		ctx := tx.Statement.Context
 		board := &app.Board{
 			Name:   "My Awesome Board",
 			Width:  200,
 			Height: 300,
 		}
 
-		err := p.CreateBoard(board)
+		err := p.CreateBoard(ctx, board)
 		if err != nil {
 			t.Fatalf("CreateBoard returned error: %+v", err)
 		}
 
 		boardID := board.ID
-		board, err = p.GetBoardByID(boardID)
+		board, err = p.GetBoardByID(ctx, boardID)
 		if err != nil {
 			t.Fatalf("GetBoardByID %v returned error: %+v", boardID, err)
 		}
@@ -120,13 +122,14 @@ func TestCreateBoardReturnsErrorOnDuplicateName(t *testing.T) {
 
 	assert := assert.New(t)
 	TempTransaction(func(r app.BoardCrudRepository, tx *gorm.DB) {
+		ctx := tx.Statement.Context
 		board1 := app.Board{
 			Name:   "My Awesome Board",
 			Width:  200,
 			Height: 300,
 		}
 
-		err := r.CreateBoard(&board1)
+		err := r.CreateBoard(ctx, &board1)
 		if err != nil {
 			t.Fatalf("CreateBoard returned error: %+v", err)
 		}
@@ -136,7 +139,7 @@ func TestCreateBoardReturnsErrorOnDuplicateName(t *testing.T) {
 			Width:  200,
 			Height: 300,
 		}
-		err = r.CreateBoard(&board2)
+		err = r.CreateBoard(ctx, &board2)
 		if err != app.ErrNameTaken {
 			t.Error("Expected ErrNameTaken to be returned for duplicate board name")
 		}
@@ -153,19 +156,20 @@ func TestCreateBoardReturnsErrorOnDuplicateName(t *testing.T) {
 func TestUpdateBoard(t *testing.T) {
 	assert := assert.New(t)
 	TempTransaction(func(r app.BoardCrudRepository, tx *gorm.DB) {
+		ctx := tx.Statement.Context
 		board := &app.Board{
 			Name:   "Original Name",
 			Width:  200,
 			Height: 300,
 		}
-		err := r.CreateBoard(board)
+		err := r.CreateBoard(ctx, board)
 		if err != nil {
 			t.Fatalf("CreateBoard returned error: %+v", err)
 		}
 
 		originalID := board.ID
 
-		board, err = r.UpdateBoard(originalID, func (board *app.Board) (*app.Board, error) {
+		board, err = r.UpdateBoard(ctx, originalID, func (board *app.Board) (*app.Board, error) {
 			board.Name = "New Name"
 			board.Width = 123
 			board.Height = 321
@@ -175,7 +179,7 @@ func TestUpdateBoard(t *testing.T) {
 			t.Fatalf("UpdateBoard returned error: %+v", err)
 		}
 
-		board, err = r.GetBoardByID(board.ID)
+		board, err = r.GetBoardByID(ctx, board.ID)
 		if err != nil {
 			t.Fatalf("GetBoardByID returned error: %+v", err)
 		}
@@ -189,12 +193,12 @@ func TestUpdateBoard(t *testing.T) {
 		dupe := app.Board{
 			Name:   "Imadupe",
 		}
-		err = r.CreateBoard(&dupe)
+		err = r.CreateBoard(ctx, &dupe)
 		if err != nil {
 			t.Fatalf("CreateBoard returned error: %+v", err)
 		}
 
-		board, err = r.UpdateBoard(originalID, func (board *app.Board) (*app.Board, error) {
+		board, err = r.UpdateBoard(ctx, originalID, func (board *app.Board) (*app.Board, error) {
 			board.Name = "Imadupe"
 			return board, nil
 		})
@@ -207,10 +211,11 @@ func TestUpdateBoard(t *testing.T) {
 func TestDeleteBoardByIDDeletesNestedRecords(t *testing.T) {
 	assert := assert.New(t)
 	TempTransaction(func(p app.BoardCrudRepository, tx *gorm.DB) {
+		ctx := tx.Statement.Context
 		board := app.Board{
 			Name: "Test Board",
 		}
-		err := p.CreateBoard(&board)
+		err := p.CreateBoard(ctx, &board)
 		if err != nil {
 			t.Fatalf("CreateBoard returned error %+v", err)
 		}
@@ -219,7 +224,7 @@ func TestDeleteBoardByIDDeletesNestedRecords(t *testing.T) {
 			BoardID: board.ID,
 			Name: "Test City",
 		}
-		err = p.CreateCity(&city)
+		err = p.CreateCity(ctx, &city)
 		if err != nil {
 			t.Fatalf("CreateCity returned error %+v", err)
 		}
@@ -229,12 +234,12 @@ func TestDeleteBoardByIDDeletesNestedRecords(t *testing.T) {
 			Order:     1,
 			SpaceType: app.TraderID,
 		}
-		err = p.CreateCitySpace(&space)
+		err = p.CreateCitySpace(ctx, &space)
 		if err != nil {
 			t.Fatalf("CreateCitySpace returned error %+v", err)
 		}
 
-		err = p.DeleteBoardByID(board.ID)
+		err = p.DeleteBoardByID(ctx, board.ID)
 		if err != nil {
 			t.Fatalf("DeleteBoardByID returned error %+v", err)
 		}
@@ -261,10 +266,11 @@ func TestDeleteBoardByIDDeletesNestedRecords(t *testing.T) {
 func TestListCitiesByBoardId(t *testing.T) {
 	assert := assert.New(t)
 	TempTransaction(func (r app.BoardCrudRepository, tx *gorm.DB) {
+		ctx := tx.Statement.Context
 		board := createTestBoard()
 		createTestCityWithSpaces(board.ID)
 
-		results, err := r.ListCitiesByBoardID(board.ID)
+		results, err := r.ListCitiesByBoardID(ctx, board.ID)
 		if err != nil {
 			t.Fatalf("ListCitiesByBoardID returned error: %+v", err)
 		}
@@ -275,6 +281,7 @@ func TestListCitiesByBoardId(t *testing.T) {
 
 func TestCreateCity(t *testing.T) {
 	TempTransaction(func(p app.BoardCrudRepository, tx *gorm.DB) {
+		ctx := tx.Statement.Context
 		board := createTestBoard()
 
 		city := app.City{
@@ -286,7 +293,7 @@ func TestCreateCity(t *testing.T) {
 			},
 		}
 
-		err := p.CreateCity(&city)
+		err := p.CreateCity(ctx, &city)
 		if err != nil {
 			t.Fatalf("CreateCity returned error: %+v", err)
 		}
@@ -310,10 +317,12 @@ func TestCreateCity(t *testing.T) {
 
 func TestUpdateCity(t *testing.T) {
 	TempTransaction(func(p app.BoardCrudRepository, tx *gorm.DB) {
+		ctx := tx.Statement.Context
 		board := createTestBoard()
 		city := createTestCity(board.ID)
 
-		err := p.UpdateCity(city.ID, func(city *app.City) (*app.City, error) {
+		id := city.ID
+		_, err := p.UpdateCity(ctx, id, func(city *app.City) (*app.City, error) {
 			city.Name = "New City Name"
 			city.Position.X = 123
 			city.Position.Y = 432
@@ -323,9 +332,9 @@ func TestUpdateCity(t *testing.T) {
 			t.Fatalf("UpdateCity returned error: %+v", err)
 		}
 
-		var updatedCity City
-		if err := tx.Find(&updatedCity, city.ID).Error; err != nil {
-			panic(err)
+		updatedCity, err := p.GetCityByID(ctx, id)
+		if err != nil {
+			t.Fatalf("error reloading city: %+v", err)
 		}
 
 		if updatedCity.Name != "New City Name" {
@@ -340,13 +349,28 @@ func TestUpdateCity(t *testing.T) {
 	})
 }
 
-func TestGetCitySpacesByCityID(t *testing.T) {
+func TestDeleteCityByID(t *testing.T) {
 	assert := assert.New(t)
 	TempTransaction(func (p app.BoardCrudRepository, tx *gorm.DB) {
+		ctx := tx.Statement.Context
 		board := createTestBoard()
 		city := createTestCityWithSpaces(board.ID)
 
-		spaces, err := p.GetCitySpacesByCityID(city.ID)
+		spaces, err := p.GetCitySpacesByCityID(ctx, city.ID)
+		assert.That(err).IsNil()
+
+		assert.ThatInt(len(spaces)).IsEqualTo(len(city.CitySpaces))
+	})
+}
+
+func TestGetCitySpacesByCityID(t *testing.T) {
+	assert := assert.New(t)
+	TempTransaction(func (p app.BoardCrudRepository, tx *gorm.DB) {
+		ctx := tx.Statement.Context
+		board := createTestBoard()
+		city := createTestCityWithSpaces(board.ID)
+
+		spaces, err := p.GetCitySpacesByCityID(ctx, city.ID)
 		assert.That(err).IsNil()
 
 		assert.ThatInt(len(spaces)).IsEqualTo(len(city.CitySpaces))
@@ -356,6 +380,7 @@ func TestGetCitySpacesByCityID(t *testing.T) {
 func TestSaveCitySpace(t *testing.T) {
 	assert := assert.New(t)
 	TempTransaction(func (r app.BoardCrudRepository, tx *gorm.DB) {
+		ctx := tx.Statement.Context
 		board := createTestBoard()
 		testCity := createTestCity(board.ID)
 
@@ -365,12 +390,12 @@ func TestSaveCitySpace(t *testing.T) {
 			SpaceType: app.MerchantID,
 			RequiredPrivilege: 2,
 		}
-		err := r.CreateCitySpace(&space)
+		err := r.CreateCitySpace(ctx, &space)
 		if err != nil {
 			t.Fatalf("CreateCitySpace returned error: %+v", err)
 		}
 
-		city, err := r.GetCityByID(testCity.ID)
+		city, err := r.GetCityByID(ctx, testCity.ID)
 		if err != nil {
 			t.Fatalf("GetCityById returned error: %+v", err)
 		}
@@ -385,6 +410,7 @@ func TestSaveCitySpace(t *testing.T) {
 func TestDeleteCitySpaceByIDSucceeds(t *testing.T) {
 	assert := assert.New(t)
 	TempTransaction(func (p app.BoardCrudRepository, tx *gorm.DB) {
+		ctx := tx.Statement.Context
 		board := createTestBoard()
 		testCity := createTestCity(board.ID)
 
@@ -394,13 +420,13 @@ func TestDeleteCitySpaceByIDSucceeds(t *testing.T) {
 			SpaceType: app.MerchantID,
 			RequiredPrivilege: 2,
 		}
-		err := p.CreateCitySpace(&space)
+		err := p.CreateCitySpace(ctx, &space)
 		assert.That(err).IsNil()
 
-		err = p.DeleteCitySpaceByID(space.ID)
+		err = p.DeleteCitySpaceByID(ctx, space.ID)
 		assert.That(err).IsNil()
 
-		city, err := p.GetCityByID(testCity.ID)
+		city, err := p.GetCityByID(ctx, testCity.ID)
 		assert.That(err).IsNil()
 
 		assert.ThatInt(len(city.CitySpaces)).IsEqualTo(0)

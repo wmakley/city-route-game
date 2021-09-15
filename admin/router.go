@@ -7,13 +7,13 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func NewAdminRouter(logRequests bool) *mux.Router {
+func NewAdminRouter(boardController *BoardController, cityController *CityController, ipWhitelist []string, logRequests bool) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	if logRequests {
 		router.Use(middleware.RequestLogger)
 	}
-	if len(config.IPWhitelist) > 0 {
-		router.Use(middleware.NewIPWhiteListMiddleware(config.IPWhitelist, true))
+	if len(ipWhitelist) > 0 {
+		router.Use(middleware.NewIPWhiteListMiddleware(ipWhitelist, true))
 	}
 	router.Use(
 		middleware.RecoverPanic,
@@ -26,19 +26,19 @@ func NewAdminRouter(logRequests bool) *mux.Router {
 	router.Handle("/", http.RedirectHandler("/boards/", http.StatusFound))
 
 	boards := router.PathPrefix("/boards").Subrouter()
-	boards.HandleFunc("/", BoardsIndexHandler).Methods("GET")
-	boards.HandleFunc("/new", NewBoardHandler).Methods("GET")
-	boards.HandleFunc("/", CreateBoardHandler).Methods("POST")
-	boards.HandleFunc("/{id}", GetBoardByIdHandler).Methods("GET")
-	boards.HandleFunc("/{id}/edit", EditBoardHandler).Methods("GET")
-	boards.HandleFunc("/{id}", UpdateBoardHandler).Methods("POST", "PATCH")
-	boards.HandleFunc("/{id}", DeleteBoardHandler).Methods("DELETE")
+	boards.HandleFunc("/", boardController.Index).Methods("GET")
+	boards.HandleFunc("/new", boardController.New).Methods("GET")
+	boards.HandleFunc("/", boardController.Create).Methods("POST")
+	boards.HandleFunc("/{id}", boardController.GetById).Methods("GET")
+	boards.HandleFunc("/{id}/edit", boardController.Edit).Methods("GET")
+	boards.HandleFunc("/{id}", boardController.Update).Methods("POST", "PATCH")
+	boards.HandleFunc("/{id}", boardController.Delete).Methods("DELETE")
 
 	cities := boards.PathPrefix("/{boardId}/cities").Subrouter()
-	cities.HandleFunc("/", ListCitiesHandler).Methods("GET")
-	cities.HandleFunc("/", CreateCityHandler).Methods("POST")
-	cities.HandleFunc("/{id}", UpdateCityHandler).Methods("PUT")
-	cities.HandleFunc("/{id}", DeleteCityHandler).Methods("DELETE")
+	cities.HandleFunc("/", cityController.Index).Methods("GET")
+	cities.HandleFunc("/", cityController.Create).Methods("POST")
+	cities.HandleFunc("/{id}", cityController.Update).Methods("PUT")
+	cities.HandleFunc("/{id}", cityController.Delete).Methods("DELETE")
 
 	router.Handle("/{file}", http.FileServer(http.Dir("static/admin")))
 

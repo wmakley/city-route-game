@@ -2,6 +2,7 @@ package gorm_board_crud_repository
 
 import (
 	"city-route-game/internal/app"
+	"context"
 	"errors"
 	"gorm.io/gorm"
 )
@@ -16,9 +17,9 @@ type gormBoardRepository struct {
 	db *gorm.DB
 }
 
-func (p gormBoardRepository) GetBoardByID(id app.ID) (*app.Board, error) {
+func (p gormBoardRepository) GetBoardByID(ctx context.Context, id app.ID) (*app.Board, error) {
 	var board Board
-	if err := p.db.First(&board, id).Error; err != nil {
+	if err := p.db.WithContext(ctx).First(&board, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, app.NewBoardNotFoundError(id)
 		} else {
@@ -28,9 +29,9 @@ func (p gormBoardRepository) GetBoardByID(id app.ID) (*app.Board, error) {
 	return newDomainBoardFromGormBoard(&board), nil
 }
 
-func (p gormBoardRepository) CreateBoard(board *app.Board) error {
+func (p gormBoardRepository) CreateBoard(ctx context.Context, board *app.Board) error {
 	var gormBoard *Board
-	err := p.db.Transaction(func(tx *gorm.DB) error {
+	err := p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var dupe Board
 		err := tx.First(&dupe, "name = ?", board.Name).Error
 		if err == nil {
@@ -65,9 +66,9 @@ func (p gormBoardRepository) CreateBoard(board *app.Board) error {
 	return nil
 }
 
-func (p gormBoardRepository) UpdateBoard(id app.ID, updateFn func (board *app.Board) (*app.Board, error)) (*app.Board, error) {
+func (p gormBoardRepository) UpdateBoard(ctx context.Context, id app.ID, updateFn func (board *app.Board) (*app.Board, error)) (*app.Board, error) {
 	var domainBoard *app.Board
-	err := p.db.Transaction(func (tx *gorm.DB) error {
+	err := p.db.WithContext(ctx).Transaction(func (tx *gorm.DB) error {
 		var board Board
 		err := tx.First(&board, id).Error
 		if err != nil {
@@ -112,9 +113,9 @@ func (p gormBoardRepository) UpdateBoard(id app.ID, updateFn func (board *app.Bo
 	return domainBoard, nil
 }
 
-func (p gormBoardRepository) ListBoards() ([]app.Board, error) {
+func (p gormBoardRepository) ListBoards(ctx context.Context) ([]app.Board, error) {
 	var boards []Board
-	if err := p.db.Find(&boards).Error; err != nil {
+	if err := p.db.WithContext(ctx).Find(&boards).Error; err != nil {
 		return nil, err
 	}
 
@@ -127,12 +128,12 @@ func (p gormBoardRepository) ListBoards() ([]app.Board, error) {
 	return domainBoards, nil
 }
 
-func (p gormBoardRepository) DeleteBoardByID(id app.ID) error {
-	return p.db.Transaction(func(tx *gorm.DB) error {
+func (p gormBoardRepository) DeleteBoardByID(ctx context.Context, id app.ID) error {
+	return p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var board Board
 		var err error
 
-		if err = p.db.First(&board, id).Error; err != nil {
+		if err = tx.First(&board, id).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return app.NewBoardNotFoundError(id)
 			}
@@ -171,9 +172,10 @@ func (p gormBoardRepository) DeleteBoardByID(id app.ID) error {
 //	}
 //}
 
-func (p gormBoardRepository) ListCitiesByBoardID(boardID app.ID) ([]app.City, error) {
+func (p gormBoardRepository) ListCitiesByBoardID(ctx context.Context, boardID app.ID) ([]app.City, error) {
 	var cities []City
-	err := p.db.Preload("CitySpaces").
+	err := p.db.WithContext(ctx).
+		Preload("CitySpaces").
 		Where("`cities`.`board_id` = ?", boardID).
 		Find(&cities).
 		Error
@@ -189,10 +191,11 @@ func (p gormBoardRepository) ListCitiesByBoardID(boardID app.ID) ([]app.City, er
 	return appCities, nil
 }
 
-func (p gormBoardRepository) GetCityByID(id app.ID) (*app.City, error) {
+func (p gormBoardRepository) GetCityByID(ctx context.Context, id app.ID) (*app.City, error) {
 	var city City
 
-	err := p.db.Preload("CitySpaces", func(spaces *gorm.DB) *gorm.DB {
+	err := p.db.WithContext(ctx).
+		Preload("CitySpaces", func(spaces *gorm.DB) *gorm.DB {
 		return spaces.Order("`city_spaces`.`order` ASC")
 	}).First(&city, id).Error
 	if err != nil {
@@ -202,13 +205,13 @@ func (p gormBoardRepository) GetCityByID(id app.ID) (*app.City, error) {
 	return newAppCityFromGormCity(&city), nil
 }
 
-func (p gormBoardRepository) CreateCity(city *app.City) error {
+func (p gormBoardRepository) CreateCity(ctx context.Context, city *app.City) error {
 	gormCity, err := newGormCityFromAppCity(city)
 	if err != nil {
 		return err
 	}
 
-	if err := p.db.Save(gormCity).Error; err != nil {
+	if err := p.db.WithContext(ctx).Save(gormCity).Error; err != nil {
 		return err
 	}
 
@@ -223,8 +226,9 @@ func (p gormBoardRepository) CreateCity(city *app.City) error {
 	return nil
 }
 
-func (p gormBoardRepository) UpdateCity(id app.ID, updateFn func (city *app.City) (*app.City, error) ) error {
-	return p.db.Transaction(func (tx *gorm.DB) error {
+func (p gormBoardRepository) UpdateCity(ctx context.Context, id app.ID, updateFn func (city *app.City) (*app.City, error) ) (*app.City, error) {
+	var updatedCity *app.City
+	err := p.db.WithContext(ctx).Transaction(func (tx *gorm.DB) error {
 		var city City
 		err := tx.First(&city, id).Error
 		if err != nil {
@@ -233,12 +237,12 @@ func (p gormBoardRepository) UpdateCity(id app.ID, updateFn func (city *app.City
 
 		appCity := newAppCityFromGormCity(&city)
 
-		updatedCity, err := updateFn(appCity)
+		updatedCity, err = updateFn(appCity)
 		if err != nil {
 			return err
 		}
 		if updatedCity == nil {
-			return errors.New("updateFn returned nil error and nil city")
+			panic("updateFn returned nil error and nil city")
 		}
 
 		updatedGormCity, err := newGormCityFromAppCity(updatedCity)
@@ -255,10 +259,15 @@ func (p gormBoardRepository) UpdateCity(id app.ID, updateFn func (city *app.City
 
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return updatedCity, nil
 }
 
-func (p gormBoardRepository) DeleteCityByBoardIDAndCityID(boardID app.ID, cityID app.ID) error {
-	return p.db.Transaction(func(tx *gorm.DB) error {
+func (p gormBoardRepository) DeleteCityByBoardIDAndCityID(ctx context.Context, boardID app.ID, cityID app.ID) error {
+	return p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var city app.City
 		if err := tx.First(&city, "board_id = ? AND id = ?", boardID, cityID).Error; err != nil {
 			return err
@@ -268,13 +277,6 @@ func (p gormBoardRepository) DeleteCityByBoardIDAndCityID(boardID app.ID, cityID
 			return err
 		}
 
-		return p.DeleteCity(&city)
-	})
-}
-
-func (p gormBoardRepository) DeleteCity(city *app.City) error {
-	return p.db.Transaction(func(tx *gorm.DB) error {
-
 		if err := tx.Delete(city).Error; err != nil {
 			return err
 		}
@@ -283,13 +285,32 @@ func (p gormBoardRepository) DeleteCity(city *app.City) error {
 	})
 }
 
-func (p gormBoardRepository) CreateCitySpace(citySpace *app.CitySpace) error {
+func (p gormBoardRepository) DeleteCityByID(ctx context.Context, id app.ID) error {
+	return p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var city City
+		err := tx.First(&city, id).Error
+		if err != nil {
+			if errors.Is(gorm.ErrRecordNotFound, err) {
+				return app.NewRecordNotFoundError("City", id)
+			}
+			return err
+		}
+
+		if err = tx.Delete(&city).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (p gormBoardRepository) CreateCitySpace(ctx context.Context, citySpace *app.CitySpace) error {
 	gormSpace, err := newGormCitySpaceFromAppCitySpace(citySpace)
 	if err != nil {
 		return err
 	}
 
-	err = p.db.Save(gormSpace).Error
+	err = p.db.WithContext(ctx).Save(gormSpace).Error
 	if err != nil {
 		return err
 	}
@@ -304,8 +325,8 @@ func (p gormBoardRepository) CreateCitySpace(citySpace *app.CitySpace) error {
 	return nil
 }
 
-func (p gormBoardRepository) UpdateCitySpace(id app.ID, updateFn func (*app.CitySpace) (*app.CitySpace, error)) error {
-	return p.db.Transaction(func(tx *gorm.DB) error {
+func (p gormBoardRepository) UpdateCitySpace(ctx context.Context, id app.ID, updateFn func (*app.CitySpace) (*app.CitySpace, error)) error {
+	return p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var citySpace *app.CitySpace
 
 		err := tx.First(citySpace, id).Error
@@ -327,9 +348,11 @@ func (p gormBoardRepository) UpdateCitySpace(id app.ID, updateFn func (*app.City
 	})
 }
 
-func (p gormBoardRepository) GetCitySpacesByCityID(cityID app.ID) ([]app.CitySpace, error) {
+func (p gormBoardRepository) GetCitySpacesByCityID(ctx context.Context, cityID app.ID) ([]app.CitySpace, error) {
 	var spaces []CitySpace
-	if err := p.db.Find(&spaces, "city_id = ?", cityID).Error; err != nil {
+	if err := p.db.WithContext(ctx).
+		Find(&spaces, "city_id = ?", cityID).
+		Error; err != nil {
 		return nil, err
 	}
 
@@ -342,8 +365,8 @@ func (p gormBoardRepository) GetCitySpacesByCityID(cityID app.ID) ([]app.CitySpa
 	return appSpaces, nil
 }
 
-func (p gormBoardRepository) DeleteCitySpaceByID(id app.ID) error {
-	return p.db.Transaction(func(tx *gorm.DB) error {
+func (p gormBoardRepository) DeleteCitySpaceByID(ctx context.Context, id app.ID) error {
+	return p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var space CitySpace
 		var err error
 

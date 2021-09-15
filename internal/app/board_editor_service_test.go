@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"github.com/assertgo/assert"
 	"testing"
@@ -10,8 +11,9 @@ import (
 func TestFindAll(t *testing.T) {
 	repo := fakeBoardCrudRepository{}
 	service := NewBoardEditorService(&repo)
+	ctx := context.Background()
 
-	results, err := service.FindAll()
+	results, err := service.FindAll(ctx)
 	if err != nil {
 		t.Fatalf("FindAll returned error: %+v", err)
 	}
@@ -45,7 +47,7 @@ func TestFindAll(t *testing.T) {
 		},
 	}
 
-	results, err = service.FindAll()
+	results, err = service.FindAll(ctx)
 	if err != nil {
 		t.Fatalf("FindAll returned error: %+v", err)
 	}
@@ -74,8 +76,9 @@ func TestFindAll(t *testing.T) {
 func TestFindByID(t *testing.T) {
 	repo := fakeBoardCrudRepository{}
 	service := NewBoardEditorService(&repo)
+	ctx := context.Background()
 
-	_, err := service.FindByID("1")
+	_, err := service.FindByID(ctx, "1")
 	if !errors.Is(RecordNotFound{}, err) {
 		t.Errorf("FindByID with no board should have returned error RecordNotFound, but returned: %+v", err)
 	}
@@ -123,7 +126,7 @@ func TestFindByID(t *testing.T) {
 	}
 
 	var result *Board
-	result, err = service.FindByID("1")
+	result, err = service.FindByID(ctx, "1")
 	if err != nil {
 		t.Fatalf("FindByID returned error: %+v", err)
 	}
@@ -160,11 +163,12 @@ func TestFindByID(t *testing.T) {
 func TestCreateBoard(t *testing.T) {
 	repo := fakeBoardCrudRepository{}
 	service := NewBoardEditorService(&repo)
+	ctx := context.Background()
 
 	form := NewCreateBoardForm()
 	form.Name = "Test Name"
 
-	board, err := service.CreateBoard(&form)
+	board, err := service.CreateBoard(ctx, &form)
 	if err != nil {
 		t.Errorf("CreateBoard with valid name returned error: %+v", err)
 	}
@@ -176,7 +180,7 @@ func TestCreateBoard(t *testing.T) {
 	}
 
 	form.Name = ""
-	_, err = service.CreateBoard(&form)
+	_, err = service.CreateBoard(ctx, &form)
 	if err == nil {
 		t.Error("CreateBoard with blank name should have returned an error")
 	} else if !errors.Is(ErrInvalidForm, err) {
@@ -184,7 +188,7 @@ func TestCreateBoard(t *testing.T) {
 	}
 
 	form.Name = "   "
-	_, err = service.CreateBoard(&form)
+	_, err = service.CreateBoard(ctx, &form)
 	if err == nil {
 		t.Error("CreateBoard with blank name should have returned an error")
 	} else if !errors.Is(ErrInvalidForm, err) {
@@ -193,7 +197,7 @@ func TestCreateBoard(t *testing.T) {
 
 	repo.ErrorResult = ErrNameTaken
 	form.Name = "Duplicate Name"
-	_, err = service.CreateBoard(&form)
+	_, err = service.CreateBoard(ctx, &form)
 	if !errors.Is(ErrInvalidForm, err) {
 		t.Errorf("CreateBoard should have returned ErrInvalidForm, was: %+v", err)
 	}
@@ -221,11 +225,12 @@ func TestUpdateName(t *testing.T) {
 		},
 	}
 	service := NewBoardEditorService(&repo)
+	ctx := context.Background()
 
 	form := NewBoardNameForm(&repo.Boards[0])
 	form.Name = "Test Name"
 
-	updatedBoard, err := service.UpdateName("1", &form)
+	updatedBoard, err := service.UpdateName(ctx, "1", &form)
 	if err != nil {
 		t.Errorf("UpdateName with valid name returned error: %+v", err)
 	}
@@ -234,7 +239,7 @@ func TestUpdateName(t *testing.T) {
 	}
 
 	form.Name = ""
-	_, err = service.UpdateName("1", &form)
+	_, err = service.UpdateName(ctx, "1", &form)
 	if err == nil {
 		t.Error("UpdateName with blank name should have returned an error")
 	} else if !errors.Is(ErrInvalidForm, err) {
@@ -242,7 +247,7 @@ func TestUpdateName(t *testing.T) {
 	}
 
 	form.Name = "   "
-	_, err = service.UpdateName("1", &form)
+	_, err = service.UpdateName(ctx, "1", &form)
 	if err == nil {
 		t.Error("UpdateName with blank name should have returned an error")
 	} else if !errors.Is(ErrInvalidForm, err) {
@@ -251,7 +256,7 @@ func TestUpdateName(t *testing.T) {
 
 	repo.ErrorResult = ErrNameTaken
 	form.Name = "Duplicate Name"
-	_, err = service.UpdateName("1", &form)
+	_, err = service.UpdateName(ctx, "1", &form)
 	if !errors.Is(ErrInvalidForm, err) {
 		t.Errorf("UpdateBoard should have returned ErrInvalidForm, was: %+v", err)
 	}
@@ -280,12 +285,13 @@ func TestUpdateDimensions(t *testing.T) {
 		},
 	}
 	service := NewBoardEditorService(&repo)
+	ctx := context.Background()
 
 	form := NewUpdateBoardForm(&repo.Boards[0])
 	form.Width = 123
 	form.Height = 456
 
-	updatedBoard, err := service.UpdateDimensions("1", &form)
+	updatedBoard, err := service.UpdateDimensions(ctx, "1", &form)
 	if err != nil {
 		t.Fatalf("UpdateDimensions with valid input returned error: %+v", err)
 	}
@@ -295,7 +301,7 @@ func TestUpdateDimensions(t *testing.T) {
 
 	form.Width = -1
 	form.Height = 0
-	_, err = service.UpdateDimensions("1", &form)
+	_, err = service.UpdateDimensions(ctx, "1", &form)
 	if err == nil {
 		t.Fatalf("UpdateDimensions with negative width should have returned an error")
 	} else if !errors.Is(ErrInvalidForm, err) {
@@ -304,7 +310,7 @@ func TestUpdateDimensions(t *testing.T) {
 
 	form.Width = 0
 	form.Height = -1
-	_, err = service.UpdateDimensions("1", &form)
+	_, err = service.UpdateDimensions(ctx, "1", &form)
 	if err == nil {
 		t.Fatalf("UpdateDimensions with negative height should have returned an error")
 	} else if !errors.Is(ErrInvalidForm, err) {
@@ -315,14 +321,15 @@ func TestUpdateDimensions(t *testing.T) {
 func TestDeleteByID(t *testing.T) {
 	repo := fakeBoardCrudRepository{}
 	service := NewBoardEditorService(&repo)
+	ctx := context.Background()
 
-	err := service.DeleteByID("1")
+	err := service.DeleteByID(ctx, "1")
 	if err != nil {
 		t.Error("DeleteByID should have returned nil error when repo returned success")
 	}
 
 	repo.ErrorResult = NewBoardNotFoundError(1)
-	err = service.DeleteByID("1")
+	err = service.DeleteByID(ctx, "1")
 	if !errors.Is(RecordNotFound{}, err) {
 		t.Errorf("DeleteByID when board doesn't exist should have returned RecordNotFound, was: %+v", err)
 	}
@@ -336,7 +343,7 @@ type fakeBoardCrudRepository struct {
 	ErrorResult error
 }
 
-func (r fakeBoardCrudRepository)GetBoardByID(id ID) (*Board, error) {
+func (r fakeBoardCrudRepository)GetBoardByID(ctx context.Context, id ID) (*Board, error) {
 	for _, board := range r.Boards {
 		if board.ID == id {
 			return &board, nil
@@ -345,59 +352,59 @@ func (r fakeBoardCrudRepository)GetBoardByID(id ID) (*Board, error) {
 
 	return nil, NewBoardNotFoundError(id)
 }
-func (r fakeBoardCrudRepository)CreateBoard(board *Board) error {
+func (r fakeBoardCrudRepository)CreateBoard(ctx context.Context, board *Board) error {
 	return r.ErrorResult
 }
-func (r fakeBoardCrudRepository)UpdateBoard(id ID, updateFn func (board *Board) (*Board, error)) (*Board, error) {
+func (r fakeBoardCrudRepository)UpdateBoard(ctx context.Context, id ID, updateFn func (board *Board) (*Board, error)) (*Board, error) {
 	result, err := updateFn(&r.Boards[0])
 	if err != nil {
 		return nil, err
 	}
 	return result, r.ErrorResult
 }
-func (r fakeBoardCrudRepository)ListBoards() ([]Board, error) {
+func (r fakeBoardCrudRepository)ListBoards(ctx context.Context) ([]Board, error) {
 	return r.Boards, r.ErrorResult
 }
-func (r fakeBoardCrudRepository)DeleteBoardByID(id ID) error {
+func (r fakeBoardCrudRepository)DeleteBoardByID(ctx context.Context, id ID) error {
 	return r.ErrorResult
 }
 
-func (r fakeBoardCrudRepository)ListCitiesByBoardID(boardID ID) ([]City, error) {
+func (r fakeBoardCrudRepository)ListCitiesByBoardID(ctx context.Context, boardID ID) ([]City, error) {
 	return r.MultipleCityResult, r.ErrorResult
 }
-func (r fakeBoardCrudRepository)GetCityByID(id ID) (*City, error) {
+func (r fakeBoardCrudRepository)GetCityByID(ctx context.Context, id ID) (*City, error) {
 	return r.SingletonCityResult, r.ErrorResult
 }
-func (r fakeBoardCrudRepository)CreateCity(city *City) error {
+func (r fakeBoardCrudRepository)CreateCity(ctx context.Context, city *City) error {
 	return r.ErrorResult
 }
-func (r fakeBoardCrudRepository)UpdateCity(id ID, updateFn func (city *City) (*City, error)) error {
-	_, err := updateFn(r.SingletonCityResult)
+func (r fakeBoardCrudRepository)UpdateCity(ctx context.Context, id ID, updateFn func (city *City) (*City, error)) (*City, error) {
+	updatedCity, err := updateFn(r.SingletonCityResult)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	return updatedCity, r.ErrorResult
+}
+func (r fakeBoardCrudRepository)DeleteCityByBoardIDAndCityID(ctx context.Context, boardID ID, cityID ID) error {
 	return r.ErrorResult
 }
-func (r fakeBoardCrudRepository)DeleteCityByBoardIDAndCityID(boardID ID, cityID ID) error {
-	return r.ErrorResult
-}
-func (r fakeBoardCrudRepository)DeleteCity(city *City) error {
+func (r fakeBoardCrudRepository) DeleteCityByID(ctx context.Context, id ID) error {
 	return r.ErrorResult
 }
 
-func (r fakeBoardCrudRepository)CreateCitySpace(*CitySpace) error {
+func (r fakeBoardCrudRepository)CreateCitySpace(context.Context, *CitySpace) error {
 	return r.ErrorResult
 }
-func (r fakeBoardCrudRepository)UpdateCitySpace(id ID, updateFn func (space *CitySpace) (*CitySpace, error)) error {
+func (r fakeBoardCrudRepository)UpdateCitySpace(ctx context.Context, id ID, updateFn func (space *CitySpace) (*CitySpace, error)) error {
 	_, err := updateFn(&r.CitySpaces[0])
 	if err != nil {
 		return err
 	}
 	return r.ErrorResult
 }
-func (r fakeBoardCrudRepository)GetCitySpacesByCityID(cityID ID) ([]CitySpace, error) {
+func (r fakeBoardCrudRepository)GetCitySpacesByCityID(ctx context.Context, cityID ID) ([]CitySpace, error) {
 	return r.CitySpaces, r.ErrorResult
 }
-func (r fakeBoardCrudRepository)DeleteCitySpaceByID(id ID) error{
+func (r fakeBoardCrudRepository)DeleteCitySpaceByID(ctx context.Context, id ID) error{
 	return r.ErrorResult
 }

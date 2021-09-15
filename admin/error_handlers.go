@@ -1,13 +1,12 @@
 package admin
 
 import (
+	"city-route-game/internal/app"
 	"city-route-game/util"
 	"errors"
 	"html/template"
 	"log"
 	"net/http"
-
-	"gorm.io/gorm"
 )
 
 type ErrorPage struct {
@@ -17,8 +16,8 @@ type ErrorPage struct {
 	Details    string
 }
 
-func genericNotFound(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles(TemplatePath("error.tmpl"))
+func (c Controller)GenericNotFound(w http.ResponseWriter, r *http.Request) {
+	t, err := template.ParseFiles(c.TemplatePath("error.tmpl"))
 	if err != nil {
 		log.Printf("Showing generic error page due to template parse error: %+v\n", err)
 		http.NotFound(w, r)
@@ -26,7 +25,7 @@ func genericNotFound(w http.ResponseWriter, r *http.Request) {
 	}
 
 	errorPage := ErrorPage{
-		AssetHost:  config.AssetHost,
+		AssetHost:  c.AssetHost,
 		StatusCode: 404,
 		Message:    "Not Found",
 		Details:    "The resource you were looking for was not found on this server. :(",
@@ -40,10 +39,10 @@ func genericNotFound(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func internalServerError(err error, w http.ResponseWriter, r *http.Request) {
+func (c Controller)InternalServerError(err error, w http.ResponseWriter, r *http.Request) {
 	log.Printf("Internal Server Error: %+v\n", err)
 
-	t, err := template.ParseFiles(TemplatePath("error.tmpl"))
+	t, err := template.ParseFiles(c.TemplatePath("error.tmpl"))
 	if err != nil {
 		log.Printf("Showing generic error page due to template parse error: %+v\n", err)
 		http.Error(w, "Internal Server Error", 500)
@@ -51,7 +50,7 @@ func internalServerError(err error, w http.ResponseWriter, r *http.Request) {
 	}
 
 	errorPage := ErrorPage{
-		AssetHost:  config.AssetHost,
+		AssetHost:  c.AssetHost,
 		StatusCode: 500,
 		Message:    "Internal Server Error",
 		Details:    "Something went wrong. :(",
@@ -65,11 +64,15 @@ func internalServerError(err error, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleDBErr(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		genericNotFound(w, r)
+func (c Controller)HandleServiceError(err error, w http.ResponseWriter, r *http.Request) {
+	// TODO: switch on accept header to render HTML vs JSON
+	if errors.Is(err, app.RecordNotFound{}) {
+		c.GenericNotFound(w, r)
+	} else if errors.Is(err, app.ErrInvalidIDString{}) {
+		log.Println(err.Error())
+		c.GenericNotFound(w, r)
 	} else {
-		log.Printf("Database error: %+v\n", err)
-		internalServerError(err, w, r)
+		log.Printf("Unknown error: %+v\n", err)
+		c.InternalServerError(err, w, r)
 	}
 }

@@ -14,30 +14,32 @@ type Page interface {
 }
 
 type PageWithData struct {
+	assetHost string
 	Data interface{}
 }
 
-func NewPageWithData(data interface{}) Page {
+func NewPageWithData(assetHost string, data interface{}) Page {
 	return &PageWithData{
+		assetHost: assetHost,
 		Data: data,
 	}
 }
 
 func (p *PageWithData) AssetHost() string {
-	return config.AssetHost
+	return p.assetHost
 }
 
 const templateExtension = ".tmpl"
 
-func ParseAndExecuteAdminTemplate(w io.Writer, shortPath string, data *Page, extraTemplates ...string) error {
-	primaryTemplateFullPath := TemplatePath(shortPath)
+func (c Controller)ParseAndExecuteAdminTemplate(w io.Writer, shortPath string, data *Page, extraTemplates ...string) error {
+	primaryTemplateFullPath := c.TemplatePath(shortPath)
 	primaryTemplateName := path.Base(primaryTemplateFullPath)
 
 	allTemplatesToParse := make([]string, 2+len(extraTemplates))
-	allTemplatesToParse[0] = TemplatePath("layout")
+	allTemplatesToParse[0] = c.TemplatePath("layout")
 	allTemplatesToParse[1] = primaryTemplateFullPath
 	for index, path := range extraTemplates {
-		allTemplatesToParse[index+2] = TemplatePath(path)
+		allTemplatesToParse[index+2] = c.TemplatePath(path)
 	}
 
 	t, err := template.ParseFiles(allTemplatesToParse...)
@@ -74,11 +76,11 @@ func ExecuteTemplateBuffered(t *template.Template, w io.Writer, templateName str
 	return nil
 }
 
-func TemplatePath(shortPath string) string {
+func (c Controller)TemplatePath(shortPath string) string {
 	hasExtension := strings.HasSuffix(shortPath, templateExtension)
 	if hasExtension {
-		return config.TemplateRoot + "/admin/" + shortPath
+		return c.TemplateRoot + "/admin/" + shortPath
 	} else {
-		return config.TemplateRoot + "/admin/" + shortPath + templateExtension
+		return c.TemplateRoot + "/admin/" + shortPath + templateExtension
 	}
 }
