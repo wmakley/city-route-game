@@ -5,8 +5,6 @@ import (
 	"strings"
 )
 
-
-
 func NewCreateBoardForm() CreateBoardForm {
 	return CreateBoardForm{
 		Form: NewPostForm("/boards/"),
@@ -15,11 +13,11 @@ func NewCreateBoardForm() CreateBoardForm {
 }
 
 type UpdateBoardForm struct {
-	Form `json:"-"`
-	ID ID `json:"id"`
-	Name string `json:"name"`
-	Width  int `json:"width"`
-	Height int `json:"height"`
+	Form   `json:"-"`
+	ID     ID     `json:"id" schema:"id"`
+	Name   string `json:"name" schema:"name"`
+	Width  int    `json:"width" schema:"width"`
+	Height int    `json:"height" schema:"height"`
 }
 
 func NewUpdateBoardForm(board *Board) UpdateBoardForm {
@@ -29,9 +27,9 @@ func NewUpdateBoardForm(board *Board) UpdateBoardForm {
 			Action: fmt.Sprintf("/boards/%d", board.ID),
 			Method: "PATCH",
 		},
-		ID: board.ID,
-		Name: board.Name,
-		Width: board.Width,
+		ID:     board.ID,
+		Name:   board.Name,
+		Width:  board.Width,
 		Height: board.Height,
 	}
 }
@@ -48,17 +46,17 @@ func NewBoardNameForm(board *Board) UpdateBoardForm {
 }
 
 type CreateBoardForm struct {
-	Form   `json:"-"`
-	Name   string `json:"name"`
+	Form `json:"-"`
+	Name string `json:"name" schema:"name"`
 }
 
 // CityForm JSON format in which cities will be posted from the board editor on create or update.
 // Cities are always valid as long as they relate to a board;
 // we let the user do whatever they want with them.
 type CityForm struct {
-	ID       uint            `json:"id"`
-	Name     string          `json:"name"`
-	Position Position `json:"position"`
+	ID       uint     `json:"id" schema:"id"`
+	Name     string   `json:"name" schema:"name"`
+	Position Position `json:"position" schema:"position"`
 }
 
 func (f *CityForm) NormalizeInputs() {

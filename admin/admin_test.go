@@ -158,7 +158,7 @@ func TestEditBoard(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	t.Log("Body:", w.Body.String())
+	//t.Log("Body:", w.Body.String())
 
 	httpassert.Success(t, w)
 	httpassert.HtmlContentType(t, w)
@@ -203,7 +203,6 @@ func Test_update_board_dimensions_via_json(t *testing.T) {
 	newWidth, newHeight := 1234, 343
 
 	payload := make(map[string]interface{})
-	payload["id"] = board.ID
 	payload["name"] = board.Name
 	payload["width"] = newWidth
 	payload["height"] = newHeight

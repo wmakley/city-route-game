@@ -145,28 +145,32 @@ func (c BoardController)Update(w http.ResponseWriter, r *http.Request) {
 	accept := r.Header.Get("Accept")
 	gotJson := strings.HasPrefix(r.Header.Get("Content-Type"), "application/json")
 	respondWithJson := strings.HasPrefix(accept, "application/json")
-	_, gotName := r.PostForm["Name"]
-	_, gotDimensions := r.PostForm["Width"]
 
 	var form app.UpdateBoardForm
+	var gotName bool
+	var gotDimensions bool
 
 	if gotJson {
 		err := json.NewDecoder(r.Body).Decode(&form)
 		if err != nil {
 			panic(err)
 		}
+		// assume JSON contains everything
+		gotName = true
+		gotDimensions = true
 	} else {
+		_, gotName = r.PostForm["name"]
+		_, gotDimensions = r.PostForm["width"]
 		err := c.FormDecoder.Decode(&form, r.PostForm)
 		if err != nil {
-			c.InternalServerError(err, w, r)
-			return
+			panic(err)
 		}
 	}
 
 	var err error
 	var board *app.Board
 
-	if gotJson {
+	if gotName && gotDimensions {
 		board, err = c.boardEditorService.Update(r.Context(), id, &form)
 	} else if !gotName && gotDimensions {
 		board, err = c.boardEditorService.UpdateDimensions(r.Context(), id, &form)

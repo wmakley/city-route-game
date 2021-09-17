@@ -267,8 +267,14 @@ func TestListCitiesByBoardId(t *testing.T) {
 	assert := assert.New(t)
 	TempTransaction(func (r app.BoardCrudRepository, tx *gorm.DB) {
 		ctx := tx.Statement.Context
-		board := createTestBoard()
-		createTestCityWithSpaces(board.ID)
+
+		_, err := r.ListCitiesByBoardID(ctx, 1234)
+		if !errors.Is(app.RecordNotFound{}, err) {
+			t.Errorf("did not receive RecordNotFound error when board didn't exist, got: %+v", err)
+		}
+
+		board := createTestBoard(tx)
+		createTestCityWithSpaces(tx, board.ID)
 
 		results, err := r.ListCitiesByBoardID(ctx, board.ID)
 		if err != nil {
@@ -282,7 +288,7 @@ func TestListCitiesByBoardId(t *testing.T) {
 func TestCreateCity(t *testing.T) {
 	TempTransaction(func(p app.BoardCrudRepository, tx *gorm.DB) {
 		ctx := tx.Statement.Context
-		board := createTestBoard()
+		board := createTestBoard(tx)
 
 		city := app.City{
 			BoardID: board.ID,
@@ -318,8 +324,8 @@ func TestCreateCity(t *testing.T) {
 func TestUpdateCity(t *testing.T) {
 	TempTransaction(func(p app.BoardCrudRepository, tx *gorm.DB) {
 		ctx := tx.Statement.Context
-		board := createTestBoard()
-		city := createTestCity(board.ID)
+		board := createTestBoard(tx)
+		city := createTestCity(tx, board.ID)
 
 		id := city.ID
 		_, err := p.UpdateCity(ctx, id, func(city *app.City) (*app.City, error) {
@@ -353,8 +359,8 @@ func TestDeleteCityByID(t *testing.T) {
 	assert := assert.New(t)
 	TempTransaction(func (p app.BoardCrudRepository, tx *gorm.DB) {
 		ctx := tx.Statement.Context
-		board := createTestBoard()
-		city := createTestCityWithSpaces(board.ID)
+		board := createTestBoard(tx)
+		city := createTestCityWithSpaces(tx, board.ID)
 
 		spaces, err := p.GetCitySpacesByCityID(ctx, city.ID)
 		assert.That(err).IsNil()
@@ -367,8 +373,8 @@ func TestGetCitySpacesByCityID(t *testing.T) {
 	assert := assert.New(t)
 	TempTransaction(func (p app.BoardCrudRepository, tx *gorm.DB) {
 		ctx := tx.Statement.Context
-		board := createTestBoard()
-		city := createTestCityWithSpaces(board.ID)
+		board := createTestBoard(tx)
+		city := createTestCityWithSpaces(tx, board.ID)
 
 		spaces, err := p.GetCitySpacesByCityID(ctx, city.ID)
 		assert.That(err).IsNil()
@@ -381,8 +387,8 @@ func TestSaveCitySpace(t *testing.T) {
 	assert := assert.New(t)
 	TempTransaction(func (r app.BoardCrudRepository, tx *gorm.DB) {
 		ctx := tx.Statement.Context
-		board := createTestBoard()
-		testCity := createTestCity(board.ID)
+		board := createTestBoard(tx)
+		testCity := createTestCity(tx, board.ID)
 
 		space := app.CitySpace{
 			CityID: testCity.ID,
@@ -411,8 +417,8 @@ func TestDeleteCitySpaceByIDSucceeds(t *testing.T) {
 	assert := assert.New(t)
 	TempTransaction(func (p app.BoardCrudRepository, tx *gorm.DB) {
 		ctx := tx.Statement.Context
-		board := createTestBoard()
-		testCity := createTestCity(board.ID)
+		board := createTestBoard(tx)
+		testCity := createTestCity(tx, board.ID)
 
 		space := app.CitySpace{
 			CityID: testCity.ID,
@@ -435,34 +441,34 @@ func TestDeleteCitySpaceByIDSucceeds(t *testing.T) {
 
 var testBoardCounter = 0
 
-func createTestBoard() *Board {
+func createTestBoard(tx *gorm.DB) *Board {
 	board := Board{
 		Name:   fmt.Sprintf("Test Board %d", testBoardCounter),
 		Width:  10,
 		Height: 20,
 	}
 	testBoardCounter++
-	if err := db.Save(&board).Error; err != nil {
+	if err := tx.Save(&board).Error; err != nil {
 		panic(err)
 	}
 	return &board
 }
 
-func createTestCity(boardID ID) *City {
+func createTestCity(tx *gorm.DB, boardID ID) *City {
 	city := City{
 		BoardID: boardID,
 		Name:    "Test City",
 	}
 
-	if err := db.Save(&city).Error; err != nil {
+	if err := tx.Save(&city).Error; err != nil {
 		panic(err)
 	}
 
 	return &city
 }
 
-func createTestCityWithSpaces(boardID ID) *City {
-	city := createTestCity(boardID)
+func createTestCityWithSpaces(tx *gorm.DB, boardID ID) *City {
+	city := createTestCity(tx, boardID)
 
 	city.CitySpaces = []CitySpace{
 		{
@@ -485,7 +491,7 @@ func createTestCityWithSpaces(boardID ID) *City {
 		},
 	}
 
-	if err := db.Save(city.CitySpaces).Error; err != nil {
+	if err := tx.Save(city.CitySpaces).Error; err != nil {
 		panic(err)
 	}
 

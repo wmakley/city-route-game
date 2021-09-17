@@ -66,9 +66,9 @@ func (c Controller)InternalServerError(err error, w http.ResponseWriter, r *http
 
 func (c Controller)HandleServiceError(err error, w http.ResponseWriter, r *http.Request) {
 	// TODO: switch on accept header to render HTML vs JSON
-	if errors.Is(err, app.RecordNotFound{}) {
+	if errors.Is(app.RecordNotFound{}, err) {
 		c.GenericNotFound(w, r)
-	} else if errors.Is(err, app.ErrInvalidIDString{}) {
+	} else if errors.Is(app.ErrInvalidIDString{}, err) {
 		log.Println(err.Error())
 		c.GenericNotFound(w, r)
 	} else {

@@ -170,7 +170,7 @@ func (s boardEditorService)Update(ctx context.Context, rawId string, form *Updat
 	updatedBoard, err := s.repo.UpdateBoard(ctx, id, func (board *Board) (*Board, error) {
 		board.Name = form.Name
 		board.Width = form.Width
-		board.Name = form.Name
+		board.Height = form.Height
 		return board, nil
 	})
 	if err != nil {
