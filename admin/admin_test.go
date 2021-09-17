@@ -91,7 +91,7 @@ func TestNewBoard(t *testing.T) {
 
 func TestCreateBoard(t *testing.T) {
 	formData := url.Values{}
-	formData.Add("Name", fmt.Sprintf("Test Board %d", testBoardCounter))
+	formData.Add("name", fmt.Sprintf("Test Board %d", testBoardCounter))
 	testBoardCounter++
 
 	encodedFormData := formData.Encode()
