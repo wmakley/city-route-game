@@ -25,7 +25,7 @@ import (
 var (
 	router   *mux.Router
 	testData TestData
-	repo               app.BoardCrudRepository
+	repo     app.BoardCrudRepository
 	boardEditorService app.BoardEditorService
 )
 

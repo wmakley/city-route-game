@@ -1,7 +1,7 @@
 package main
 
 import (
-	"city-route-game/admin"
+	"city-route-game/internal/admin"
 	"city-route-game/internal/app"
 	"city-route-game/internal/gorm_board_crud_repository"
 	"flag"
