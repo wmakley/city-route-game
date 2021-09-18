@@ -12,7 +12,7 @@ func NewIDFromString(str string) (ID, error) {
 	id, err := strconv.ParseUint(str, 0, 64)
 	if err != nil {
 		return 0, ErrInvalidIDString{
-			Msg:   fmt.Sprintf("invalid ID string: %s", err.Error()),
+			Msg:   fmt.Sprintf("invalid ID string: %+s", err.Error()),
 			Cause: err,
 		}
 	}
