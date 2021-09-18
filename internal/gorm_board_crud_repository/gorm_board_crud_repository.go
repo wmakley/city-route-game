@@ -72,6 +72,9 @@ func (p gormBoardRepository) UpdateBoard(ctx context.Context, id app.ID, updateF
 		var board Board
 		err := tx.First(&board, id).Error
 		if err != nil {
+			if errors.Is(gorm.ErrRecordNotFound, err) {
+				return app.NewBoardNotFoundError(id)
+			}
 			return err
 		}
 
@@ -209,7 +212,7 @@ func (p gormBoardRepository) ListCitiesByBoardID(ctx context.Context, boardID ap
 func (p gormBoardRepository) GetCityByID(ctx context.Context, id app.ID) (*app.City, error) {
 	var city City
 
-	err := p.db.WithContext(ctx).
+	err := p.db.WithContext(ctx).Model(&City{}).
 		Preload("CitySpaces", func(spaces *gorm.DB) *gorm.DB {
 			return spaces.Order("`city_spaces`.`order` ASC")
 		}).First(&city, id).Error
@@ -247,6 +250,12 @@ func (p gormBoardRepository) UpdateCity(ctx context.Context, id app.ID, updateFn
 		var city City
 		err := tx.First(&city, id).Error
 		if err != nil {
+			if errors.Is(gorm.ErrRecordNotFound, err) {
+				return app.RecordNotFound{
+					Name: "City",
+					ID:   id,
+				}
+			}
 			return err
 		}
 
@@ -285,6 +294,12 @@ func (p gormBoardRepository) DeleteCityByBoardIDAndCityID(ctx context.Context, b
 	return p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var city app.City
 		if err := tx.First(&city, "board_id = ? AND id = ?", boardID, cityID).Error; err != nil {
+			if errors.Is(gorm.ErrRecordNotFound, err) {
+				return app.RecordNotFound{
+					Name: "City",
+					ID:   cityID,
+				}
+			}
 			return err
 		}
 
@@ -346,6 +361,12 @@ func (p gormBoardRepository) UpdateCitySpace(ctx context.Context, id app.ID, upd
 
 		err := tx.First(citySpace, id).Error
 		if err != nil {
+			if errors.Is(gorm.ErrRecordNotFound, err) {
+				return app.RecordNotFound{
+					Name: "CitySpace",
+					ID:   id,
+				}
+			}
 			return err
 		}
 
@@ -386,10 +407,16 @@ func (p gormBoardRepository) DeleteCitySpaceByID(ctx context.Context, id app.ID)
 		var err error
 
 		if err = tx.First(&space, id).Error; err != nil {
+			if errors.Is(gorm.ErrRecordNotFound, err) {
+				return app.RecordNotFound{
+					Name: "CitySpace",
+					ID:   id,
+				}
+			}
 			return err
 		}
 
-		if err := tx.Delete(&space).Error; err != nil {
+		if err = tx.Delete(&space).Error; err != nil {
 			return err
 		}
 
