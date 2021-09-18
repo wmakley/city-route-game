@@ -2,9 +2,11 @@ package main
 
 import (
 	"city-route-game/admin"
+	"city-route-game/internal/app"
 	"city-route-game/internal/gorm_board_crud_repository"
 	"flag"
 	"fmt"
+	"github.com/gorilla/schema"
 	"log"
 	"net/http"
 	"strings"
@@ -50,24 +52,25 @@ func main() {
 		fmt.Println("Database migration successful!")
 	}
 
-	boardRepo := gorm_board_crud_repository.NewGormBoardCrudRepository(db)
-
 	var splitIPs []string
 	if ipWhitelist != "" {
 		splitIPs = strings.Split(ipWhitelist, ",")
 		fmt.Printf("Whitelisted IPs: %+v\n", splitIPs)
 	}
 
-	admin.Init(
-		admin.Config{
-			TemplateRoot: "./templates",
-			AssetHost:    assetHost,
-			IPWhitelist:  splitIPs,
-		},
-		boardRepo,
-	)
+	boardRepo := gorm_board_crud_repository.NewGormBoardCrudRepository(db)
+	boardEditorService := app.NewBoardEditorService(boardRepo)
 
-	router := admin.NewAdminRouter(true)
+	controllerConfig := admin.ControllerConfig{
+		FormDecoder: schema.NewDecoder(),
+		TemplateRoot: "./templates",
+		AssetHost: "",
+	}
+
+	boardController := admin.NewBoardController(controllerConfig, boardEditorService)
+	cityController := admin.NewCityController(controllerConfig, boardEditorService)
+
+	router := admin.NewAdminRouter(&boardController, &cityController, splitIPs, true)
 
 	listenAddrFull := fmt.Sprintf("%s:%d", listenAddr, port)
 	fmt.Println("Listening on", listenAddrFull)
