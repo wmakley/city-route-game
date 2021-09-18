@@ -47,7 +47,8 @@ func NewBoardNameForm(board *Board) UpdateBoardForm {
 
 type CreateBoardForm struct {
 	Form `json:"-"`
-	Name string `json:"name" schema:"name"`
+	ID ID `json:"id" schema:"ID"`
+	Name string `json:"name" schema:"Name"`
 }
 
 // CityForm JSON format in which cities will be posted from the board editor on create or update.

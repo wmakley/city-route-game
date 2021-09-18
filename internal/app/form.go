@@ -13,15 +13,15 @@ type Form struct {
 	Method string              `schema:"_method" json:"-"`
 }
 
-func (f *Form) IsUpdate() bool {
+func (f Form) IsUpdate() bool {
 	return f.Method == "PATCH" || f.Method == "PUT"
 }
 
-func (f *Form) IsInsert() bool {
+func (f Form) IsInsert() bool {
 	return f.Method == "POST"
 }
 
-func (f *Form) IsCreate() bool {
+func (f Form) IsCreate() bool {
 	return f.IsInsert()
 }
 
@@ -44,7 +44,7 @@ func (f *Form) ClearErrors() {
 	}
 }
 
-func (f *Form) HasError() bool {
+func (f Form) HasError() bool {
 	if f.Errors == nil {
 		return false
 	}

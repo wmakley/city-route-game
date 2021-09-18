@@ -41,7 +41,7 @@ func (c BoardController)Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c BoardController)New(w http.ResponseWriter, r *http.Request) {
-	data := app.NewBoardNameForm(&app.Board{})
+	data := app.NewCreateBoardForm()
 	page := NewPageWithData(c.AssetHost, &data)
 
 	err := c.ParseAndExecuteAdminTemplate(w, "boards/new", &page, "boards/_form")
