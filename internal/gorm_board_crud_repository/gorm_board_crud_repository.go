@@ -184,8 +184,8 @@ func (p gormBoardRepository) ListCitiesByBoardID(ctx context.Context, boardID ap
 			return err
 		}
 
-		err = tx.Preload("CitySpaces").
-			Where("`cities`.`board_id` = ?", boardID).
+		err = tx.Model(&City{}).Preload("CitySpaces").
+			Where("board_id = ?", boardID).
 			Find(&cities).
 			Error
 		if err != nil {
