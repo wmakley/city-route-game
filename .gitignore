@@ -5,6 +5,9 @@ Thumbs.db
 ~*
 *~
 
+# Secrets
+.env
+
 # Database files
 *.sqlite
 *.db

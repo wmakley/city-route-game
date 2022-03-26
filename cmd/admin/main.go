@@ -6,9 +6,12 @@ import (
 	"city-route-game/internal/gorm_board_crud_repository"
 	"flag"
 	"fmt"
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/schema"
+	"github.com/joho/godotenv"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"gorm.io/driver/postgres"
@@ -17,21 +20,24 @@ import (
 )
 
 func main() {
-	var err error
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %+v", err)
+	}
 
 	var listenAddr string
 	var port int
 	var migrate bool
 	var assetHost string
-	var databaseUrl string
 	var ipWhitelist string
 	flag.StringVar(&listenAddr, "listenaddr", "", "address to listen on (default \"\")")
 	flag.IntVar(&port, "port", 8080, "port to listen on (default 8080)")
 	flag.BoolVar(&migrate, "migrate", false, "Migrate gorm_board_crud_repository on startup")
 	flag.StringVar(&assetHost, "assethost", "", "Optional asset host domain")
-	flag.StringVar(&databaseUrl, "gorm_board_crud_repository-url", "host=localhost user=william password=password dbname=hansa_dev port=5432 sslmode=disable TimeZone=UTC", "Database URL")
 	flag.StringVar(&ipWhitelist, "ipwhitelist", "", "Optional IP Whitelist")
 	flag.Parse()
+
+	databaseUrl := os.Getenv("DATABASE_URL")
 
 	fmt.Println("Database URL:", databaseUrl)
 	var db *gorm.DB
@@ -71,8 +77,9 @@ func main() {
 	cityController := admin.NewCityController(controllerConfig, boardEditorService)
 
 	router := admin.NewAdminRouter(&boardController, &cityController, splitIPs, true)
+	CSRF := csrf.Protect([]byte("32-byte-long-auth-key"))
 
 	listenAddrFull := fmt.Sprintf("%s:%d", listenAddr, port)
 	fmt.Println("Listening on", listenAddrFull)
-	log.Fatal(http.ListenAndServe(listenAddrFull, router))
+	log.Fatal(http.ListenAndServe(listenAddrFull, CSRF(router)))
 }

@@ -8,6 +8,7 @@ type Controller struct {
 	FormDecoder *schema.Decoder
 	TemplateRoot string
 	AssetHost    string
+
 }
 
 type ControllerConfig struct {

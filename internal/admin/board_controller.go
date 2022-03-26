@@ -33,7 +33,7 @@ func (c BoardController)Index(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	page := NewPageWithData(c.AssetHost, boards)
+	page := c.NewPageWithData(boards)
 
 	if err = c.ParseAndExecuteAdminTemplate(w, "boards/index", &page); err != nil {
 		panic(err)
@@ -42,7 +42,7 @@ func (c BoardController)Index(w http.ResponseWriter, r *http.Request) {
 
 func (c BoardController)New(w http.ResponseWriter, r *http.Request) {
 	data := app.NewCreateBoardForm()
-	page := NewPageWithData(c.AssetHost, &data)
+	page := c.NewPageWithData(r, &data)
 
 	err := c.ParseAndExecuteAdminTemplate(w, "boards/new", &page, "boards/_form")
 	if err != nil {
@@ -51,6 +51,7 @@ func (c BoardController)New(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c BoardController)Create(w http.ResponseWriter, r *http.Request) {
+
 	var form app.CreateBoardForm
 	var err error
 
@@ -63,7 +64,7 @@ func (c BoardController)Create(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if errors.Is(err, app.ErrInvalidForm) {
-			page := NewPageWithData(c.AssetHost, &form)
+			page := c.NewPageWithData(r, &form)
 			w.WriteHeader(http.StatusBadRequest)
 			if err = c.ParseAndExecuteAdminTemplate(w, "boards/new", &page, "boards/_form"); err != nil {
 				panic(err)
@@ -75,7 +76,7 @@ func (c BoardController)Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	util.TurbolinksVisit("/boards", true, w, r)
+	util.TurbolinksVisit("/boards", true, w)
 }
 
 type idParam struct {
@@ -95,7 +96,7 @@ func (c BoardController)GetById(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Accept") == "application/json" {
 		util.MustReturnJson(w, board)
 	} else {
-		page := NewPageWithData(c.AssetHost, &board)
+		page := c.NewPageWithData(r, &board)
 		err = c.ParseAndExecuteAdminTemplate(w, "boards/show", &page)
 		if err != nil {
 			panic(err)
@@ -125,9 +126,9 @@ func (c BoardController)Edit(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	page := NewPageWithData(
-		c.AssetHost,
-			EditBoardPage{
+	page := c.NewPageWithData(
+		r,
+		EditBoardPage{
 			BoardForm: &boardForm,
 			BoardJSON: string(boardJson),
 		})
@@ -194,7 +195,7 @@ func (c BoardController)Update(w http.ResponseWriter, r *http.Request) {
 					panic(err)
 				}
 
-				page := NewPageWithData(c.AssetHost, EditBoardPage{
+				page := c.NewPageWithData(r, EditBoardPage{
 					BoardForm: &form,
 					BoardJSON: string(boardJson),
 				})
@@ -234,5 +235,5 @@ func (c BoardController)Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.TurbolinksVisit("/boards", true, w, r)
+	util.TurbolinksVisit("/boards", true, w)
 }

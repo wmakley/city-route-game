@@ -1,58 +1,61 @@
-package gorm_board_crud_repository
+package sqlc_board_crud_repository
 
 import (
 	"city-route-game/internal/app"
+	"city-route-game/internal/sqlc"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/assertgo/assert"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	"github.com/joho/godotenv"
+	"log"
 	"os"
 	"testing"
+	"database/sql"
+	_ "github.com/lib/pq"
 )
 
 var (
-	db       *gorm.DB // original gorm connection
-	rollback = errors.New("rollback")
+	db *sql.DB
+	repo app.BoardCrudRepository
 )
 
 func TestMain(m *testing.M) {
-	dbPath := "file::memory:?cache=shared"
-	var err error
-
-	db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn),
-		DisableNestedTransaction: true,
-	})
+	err := godotenv.Load()
 	if err != nil {
-		panic("Error connecting to database: " + err.Error())
+		log.Fatalf("Error loading dotenv: %+v", err)
 	}
 
-	if err := db.AutoMigrate(Models()...); err != nil {
-		panic("Error migrating database: " + err.Error())
+	databaseUrl := os.Getenv("TEST_DATABASE_URL")
+	db, err = sql.Open("postgres", databaseUrl)
+	if err != nil {
+		log.Fatalf("Error connecting to database: %+v", err)
 	}
+
+	repo = New(db)
 
 	os.Exit(m.Run())
 }
 
-// Create a transaction within which the gormBoardRepository interface may be tested using gorm itself
-func TempTransaction(callback func (app.BoardCrudRepository, *gorm.DB)) {
-	err := db.Transaction(func(tx *gorm.DB) error {
-		repo := NewGormBoardCrudRepository(tx)
-		callback(repo, tx)
-		return rollback
-	})
-	if err != nil && !errors.Is(err, rollback) {
-		// should never happen
+// Run tests within a transaction that is always rolled back
+func TempTransaction(callback func(context.Context, app.BoardCrudRepository, *sql.Tx)) {
+	ctx := context.Background()
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
 		panic(err)
 	}
+	defer (func () {
+		err := tx.Rollback()
+		if err != nil {
+			panic(err)
+		}
+	})()
+	callback(ctx, repo, tx)
 }
 
 func TestListBoards(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func (p app.BoardCrudRepository, tx *gorm.DB) {
-		ctx := tx.Statement.Context
+	TempTransaction(func(ctx context.Context, p app.BoardCrudRepository, tx *sql.Tx) {
 		boards := []app.Board{
 			{
 				Name:   "Test Board 1",
@@ -86,8 +89,7 @@ func TestListBoards(t *testing.T) {
 
 func TestCreateBoard(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func(p app.BoardCrudRepository, tx *gorm.DB) {
-		ctx := tx.Statement.Context
+	TempTransaction(func(ctx context.Context, p app.BoardCrudRepository, tx *sql.Tx) {
 		board := &app.Board{
 			Name:   "My Awesome Board",
 			Width:  200,
@@ -108,21 +110,20 @@ func TestCreateBoard(t *testing.T) {
 		assert.That(board).IsNotNil()
 		assert.ThatUint64(uint64(board.ID)).IsNonZero()
 		assert.ThatString(board.Name).IsEqualTo("My Awesome Board")
-		assert.ThatInt(int(board.Width)).IsEqualTo(200)
-		assert.ThatInt(int(board.Height)).IsEqualTo(300)
+		assert.ThatInt(board.Width).IsEqualTo(200)
+		assert.ThatInt(board.Height).IsEqualTo(300)
 	})
 }
 
 func TestCreateBoardReturnsErrorOnDuplicateName(t *testing.T) {
-	var beginCount int64
-	err := db.Model(&Board{}).Count(&beginCount).Error
+	queries := sqlc.New(db)
+	beginCount, err := queries.CountBoards(context.Background())
 	if err != nil {
 		panic(err)
 	}
 
 	assert := assert.New(t)
-	TempTransaction(func(r app.BoardCrudRepository, tx *gorm.DB) {
-		ctx := tx.Statement.Context
+	TempTransaction(func(ctx context.Context, r app.BoardCrudRepository, tx *sql.Tx) {
 		board1 := app.Board{
 			Name:   "My Awesome Board",
 			Width:  200,
@@ -141,12 +142,11 @@ func TestCreateBoardReturnsErrorOnDuplicateName(t *testing.T) {
 		}
 		err = r.CreateBoard(ctx, &board2)
 		if err != app.ErrNameTaken {
-			t.Error("Expected ErrNameTaken to be returned for duplicate board name")
+			t.Errorf("Expected ErrNameTaken to be returned for duplicate board name, got: %+v", err)
 		}
 	})
 
-	var endCount int64
-	err = db.Model(&Board{}).Count(&endCount).Error
+	endCount, err := queries.CountBoards(context.Background())
 	if err != nil {
 		panic(err)
 	}
@@ -155,8 +155,7 @@ func TestCreateBoardReturnsErrorOnDuplicateName(t *testing.T) {
 
 func TestUpdateBoard(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func(r app.BoardCrudRepository, tx *gorm.DB) {
-		ctx := tx.Statement.Context
+	TempTransaction(func(ctx context.Context, r app.BoardCrudRepository, tx *sql.Tx) {
 		board := &app.Board{
 			Name:   "Original Name",
 			Width:  200,
@@ -169,7 +168,7 @@ func TestUpdateBoard(t *testing.T) {
 
 		originalID := board.ID
 
-		board, err = r.UpdateBoard(ctx, originalID, func (board *app.Board) (*app.Board, error) {
+		board, err = r.UpdateBoard(ctx, originalID, func(board *app.Board) (*app.Board, error) {
 			board.Name = "New Name"
 			board.Width = 123
 			board.Height = 321
@@ -186,19 +185,18 @@ func TestUpdateBoard(t *testing.T) {
 
 		assert.That(board.ID).IsEqualTo(originalID)
 		assert.ThatString(board.Name).IsEqualTo("New Name")
-		assert.ThatInt(int(board.Width)).IsEqualTo(123)
-		assert.ThatInt(int(board.Height)).IsEqualTo(321)
-
+		assert.ThatInt(board.Width).IsEqualTo(123)
+		assert.ThatInt(board.Height).IsEqualTo(321)
 
 		dupe := app.Board{
-			Name:   "Imadupe",
+			Name: "Imadupe",
 		}
 		err = r.CreateBoard(ctx, &dupe)
 		if err != nil {
 			t.Fatalf("CreateBoard returned error: %+v", err)
 		}
 
-		board, err = r.UpdateBoard(ctx, originalID, func (board *app.Board) (*app.Board, error) {
+		board, err = r.UpdateBoard(ctx, originalID, func(board *app.Board) (*app.Board, error) {
 			board.Name = "Imadupe"
 			return board, nil
 		})
@@ -210,21 +208,21 @@ func TestUpdateBoard(t *testing.T) {
 
 func TestDeleteBoardByIDDeletesNestedRecords(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func(p app.BoardCrudRepository, tx *gorm.DB) {
-		ctx := tx.Statement.Context
+	TempTransaction(func(ctx context.Context, r app.BoardCrudRepository, tx *sql.Tx) {
+		queries := sqlc.New(tx)
 		board := app.Board{
 			Name: "Test Board",
 		}
-		err := p.CreateBoard(ctx, &board)
+		err := r.CreateBoard(ctx, &board)
 		if err != nil {
 			t.Fatalf("CreateBoard returned error %+v", err)
 		}
 
 		city := app.City{
 			BoardID: board.ID,
-			Name: "Test City",
+			Name:    "Test City",
 		}
-		err = p.CreateCity(ctx, &city)
+		err = r.CreateCity(ctx, &city)
 		if err != nil {
 			t.Fatalf("CreateCity returned error %+v", err)
 		}
@@ -234,30 +232,27 @@ func TestDeleteBoardByIDDeletesNestedRecords(t *testing.T) {
 			Order:     1,
 			SpaceType: app.TraderID,
 		}
-		err = p.CreateCitySpace(ctx, &space)
+		err = r.CreateCitySpace(ctx, &space)
 		if err != nil {
 			t.Fatalf("CreateCitySpace returned error %+v", err)
 		}
 
-		err = p.DeleteBoardByID(ctx, board.ID)
+		err = r.DeleteBoardByID(ctx, board.ID)
 		if err != nil {
 			t.Fatalf("DeleteBoardByID returned error %+v", err)
 		}
 
-		var cities []City
-		err = tx.Find(&cities, "board_id = ?", board.ID).Error
+		cities, err := queries.ListCitiesByBoardID(ctx, board.ID)
 		if err != nil {
 			t.Fatalf("Finding cities by board id returned error %+v", err)
 		}
 		assert.ThatInt(len(cities)).IsEqualTo(0)
 
-		var spaces []CitySpace
-		err = tx.Find(&spaces, "city_id = ?", city.ID).Error
+		spaces, err := queries.ListCitySpacesByCityID(ctx, city.ID)
 		assert.That(err).IsNil()
 		assert.ThatInt(len(spaces)).IsEqualTo(0)
 
-		var boards []Board
-		err = tx.Find(&boards, board.ID).Error
+		boards, err := queries.ListBoards(ctx)
 		assert.That(err).IsNil()
 		assert.ThatInt(len(boards)).IsEqualTo(0)
 	})
@@ -265,16 +260,14 @@ func TestDeleteBoardByIDDeletesNestedRecords(t *testing.T) {
 
 func TestListCitiesByBoardId(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func (r app.BoardCrudRepository, tx *gorm.DB) {
-		ctx := tx.Statement.Context
-
+	TempTransaction(func(ctx context.Context, r app.BoardCrudRepository, tx *sql.Tx) {
 		_, err := r.ListCitiesByBoardID(ctx, 1234)
 		if !errors.Is(app.RecordNotFound{}, err) {
 			t.Errorf("did not receive RecordNotFound error when board didn't exist, got: %+v", err)
 		}
 
-		board := createTestBoard(tx)
-		createTestCityWithSpaces(tx, board.ID)
+		board := createTestBoard(ctx, tx)
+		createTestCityWithSpaces(ctx, tx, board.ID)
 
 		results, err := r.ListCitiesByBoardID(ctx, board.ID)
 		if err != nil {
@@ -286,13 +279,13 @@ func TestListCitiesByBoardId(t *testing.T) {
 }
 
 func TestCreateCity(t *testing.T) {
-	TempTransaction(func(p app.BoardCrudRepository, tx *gorm.DB) {
-		ctx := tx.Statement.Context
-		board := createTestBoard(tx)
+	TempTransaction(func(ctx context.Context, p app.BoardCrudRepository, tx *sql.Tx) {
+		queries := sqlc.New(tx)
+		board := createTestBoard(ctx, tx)
 
 		city := app.City{
 			BoardID: board.ID,
-			Name: "New City Name",
+			Name:    "New City Name",
 			Position: app.Position{
 				X: 123,
 				Y: 432,
@@ -304,28 +297,27 @@ func TestCreateCity(t *testing.T) {
 			t.Fatalf("CreateCity returned error: %+v", err)
 		}
 
-		var updatedCity City
-		if err := tx.Find(&updatedCity, city.ID).Error; err != nil {
-			panic(err)
+		updatedCity, err := queries.GetCity(ctx, city.ID)
+		if err != nil {
+			t.Fatalf("GetCity returned error: %+v", err)
 		}
 
 		if updatedCity.Name != "New City Name" {
 			t.Error("City Name was not updated")
 		}
-		if updatedCity.Position.X != 123 {
+		if updatedCity.X != 123 {
 			t.Error("City Position X was not updated")
 		}
-		if updatedCity.Position.Y != 432 {
+		if updatedCity.Y != 432 {
 			t.Error("City Position Y was not updated")
 		}
 	})
 }
 
 func TestUpdateCity(t *testing.T) {
-	TempTransaction(func(p app.BoardCrudRepository, tx *gorm.DB) {
-		ctx := tx.Statement.Context
-		board := createTestBoard(tx)
-		city := createTestCity(tx, board.ID)
+	TempTransaction(func(ctx context.Context, p app.BoardCrudRepository, tx *sql.Tx) {
+		board := createTestBoard(ctx, tx)
+		city := createTestCity(ctx, tx, board.ID)
 
 		id := city.ID
 		_, err := p.UpdateCity(ctx, id, func(city *app.City) (*app.City, error) {
@@ -357,48 +349,48 @@ func TestUpdateCity(t *testing.T) {
 
 func TestDeleteCityByID(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func (p app.BoardCrudRepository, tx *gorm.DB) {
-		ctx := tx.Statement.Context
-		board := createTestBoard(tx)
-		city := createTestCityWithSpaces(tx, board.ID)
-
-		err := p.DeleteCityByID(ctx, city.ID)
-		if err != nil {
-			t.Fatalf("DeleteCityByID returned error: %+v", err)
-		}
-
+	TempTransaction(func(ctx context.Context, p app.BoardCrudRepository, tx *sql.Tx) {
+		board := createTestBoard(ctx, tx)
+		city := createTestCityWithSpaces(ctx, tx, board.ID)
 		spaces, err := p.GetCitySpacesByCityID(ctx, city.ID)
 		assert.That(err).IsNil()
+		assert.That(len(spaces)).IsEqualTo(3)
 
-		assert.ThatInt(len(spaces)).IsEqualTo(len(city.CitySpaces))
+		err = p.DeleteCityByID(ctx, city.ID)
+		if err != nil {
+			t.Fatalf("DeleteCityByID returner error: %+v", err)
+		}
+
+		spaces, err = p.GetCitySpacesByCityID(ctx, city.ID)
+		assert.That(err).IsNil()
+
+		assert.ThatInt(len(spaces)).IsEqualTo(0)
 	})
 }
 
 func TestGetCitySpacesByCityID(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func (p app.BoardCrudRepository, tx *gorm.DB) {
-		ctx := tx.Statement.Context
-		board := createTestBoard(tx)
-		city := createTestCityWithSpaces(tx, board.ID)
+	TempTransaction(func(ctx context.Context, p app.BoardCrudRepository, tx *sql.Tx) {
+		board := createTestBoard(ctx, tx)
+		city := createTestCityWithSpaces(ctx, tx, board.ID)
 
 		spaces, err := p.GetCitySpacesByCityID(ctx, city.ID)
 		assert.That(err).IsNil()
 
-		assert.ThatInt(len(spaces)).IsEqualTo(len(city.CitySpaces))
+		assert.ThatInt(len(spaces)).IsEqualTo(3)
 	})
 }
 
 func TestSaveCitySpace(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func (r app.BoardCrudRepository, tx *gorm.DB) {
-		ctx := tx.Statement.Context
-		board := createTestBoard(tx)
-		testCity := createTestCity(tx, board.ID)
+	TempTransaction(func(ctx context.Context, r app.BoardCrudRepository, tx *sql.Tx) {
+		board := createTestBoard(ctx, tx)
+		testCity := createTestCity(ctx, tx, board.ID)
 
 		space := app.CitySpace{
-			CityID: testCity.ID,
-			Order: 1,
-			SpaceType: app.MerchantID,
+			CityID:            testCity.ID,
+			Order:             1,
+			SpaceType:         app.MerchantID,
 			RequiredPrivilege: 2,
 		}
 		err := r.CreateCitySpace(ctx, &space)
@@ -413,22 +405,21 @@ func TestSaveCitySpace(t *testing.T) {
 
 		space = city.CitySpaces[0]
 		assert.That(space.SpaceType).IsEqualTo(app.MerchantID)
-		assert.ThatInt(int(space.RequiredPrivilege)).IsEqualTo(2)
-		assert.ThatInt(int(space.Order)).IsEqualTo(1)
+		assert.ThatInt(space.RequiredPrivilege).IsEqualTo(2)
+		assert.ThatInt(space.Order).IsEqualTo(1)
 	})
 }
 
 func TestDeleteCitySpaceByIDSucceeds(t *testing.T) {
 	assert := assert.New(t)
-	TempTransaction(func (p app.BoardCrudRepository, tx *gorm.DB) {
-		ctx := tx.Statement.Context
-		board := createTestBoard(tx)
-		testCity := createTestCity(tx, board.ID)
+	TempTransaction(func(ctx context.Context, p app.BoardCrudRepository, tx *sql.Tx) {
+		board := createTestBoard(ctx, tx)
+		testCity := createTestCity(ctx, tx, board.ID)
 
 		space := app.CitySpace{
-			CityID: testCity.ID,
-			Order: 1,
-			SpaceType: app.MerchantID,
+			CityID:            testCity.ID,
+			Order:             1,
+			SpaceType:         app.MerchantID,
 			RequiredPrivilege: 2,
 		}
 		err := p.CreateCitySpace(ctx, &space)
@@ -446,36 +437,41 @@ func TestDeleteCitySpaceByIDSucceeds(t *testing.T) {
 
 var testBoardCounter = 0
 
-func createTestBoard(tx *gorm.DB) *Board {
-	board := Board{
+func createTestBoard(ctx context.Context, tx *sql.Tx) sqlc.Board {
+	queries := sqlc.New(tx)
+	params := sqlc.CreateBoardParams{
 		Name:   fmt.Sprintf("Test Board %d", testBoardCounter),
 		Width:  10,
 		Height: 20,
 	}
 	testBoardCounter++
-	if err := tx.Save(&board).Error; err != nil {
+	board, err := queries.CreateBoard(ctx, params)
+	if err != nil {
 		panic(err)
 	}
-	return &board
+	return board
 }
 
-func createTestCity(tx *gorm.DB, boardID ID) *City {
-	city := City{
+func createTestCity(ctx context.Context, tx *sql.Tx, boardID int64) sqlc.City {
+	queries := sqlc.New(tx)
+	params := sqlc.CreateCityParams{
 		BoardID: boardID,
 		Name:    "Test City",
 	}
 
-	if err := tx.Save(&city).Error; err != nil {
+	city, err := queries.CreateCity(ctx, params)
+	if err != nil {
 		panic(err)
 	}
 
-	return &city
+	return city
 }
 
-func createTestCityWithSpaces(tx *gorm.DB, boardID ID) *City {
-	city := createTestCity(tx, boardID)
+func createTestCityWithSpaces(ctx context.Context, tx *sql.Tx, boardID int64) sqlc.City {
+	city := createTestCity(ctx, tx, boardID)
+	queries := sqlc.New(tx)
 
-	city.CitySpaces = []CitySpace{
+	params := []sqlc.CreateCitySpaceParams{
 		{
 			CityID:            city.ID,
 			Order:             1,
@@ -496,8 +492,11 @@ func createTestCityWithSpaces(tx *gorm.DB, boardID ID) *City {
 		},
 	}
 
-	if err := tx.Save(city.CitySpaces).Error; err != nil {
-		panic(err)
+	for _, p := range params {
+		_, err := queries.CreateCitySpace(ctx, p)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return city

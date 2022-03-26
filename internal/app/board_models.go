@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type ID = uint64
+type ID = int64
 
 func NewIDFromString(str string) (ID, error) {
 	id, err := strconv.ParseUint(str, 0, 64)
@@ -19,10 +19,10 @@ func NewIDFromString(str string) (ID, error) {
 	return ID(id), nil
 }
 
-type TradesmanType = uint
+type TradesmanType = int16
 
 const (
-	TraderID TradesmanType = 1
+	TraderID   TradesmanType = 1
 	MerchantID TradesmanType = 2
 )
 
@@ -30,23 +30,23 @@ const (
 type Board struct {
 	Model
 	Name   string `json:"name"`
-	Width  int    `json:"width"`
-	Height int    `json:"height"`
+	Width  int32  `json:"width"`
+	Height int32  `json:"height"`
 	Cities []City `json:"cities"`
 }
 
 // Model is a simpler version of gorm.Model with JSON tags and without the DeletedAt column.
 // When we delete, we mean it!
 type Model struct {
-	ID `json:"id"`
+	ID        `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // Position is a shared mixin with X and Y
 type Position struct {
-	X int `json:"x"`
-	Y int `json:"y"`
+	X int32 `json:"x"`
+	Y int32 `json:"y"`
 }
 
 // City part of the Board structure
@@ -55,16 +55,18 @@ type City struct {
 	BoardID    ID     `json:"boardId"`
 	Name       string `json:"name"`
 	Position   `json:"position"`
+	UpgradeOffered int16
+	ImmediatePoint int16
 	CitySpaces []CitySpace `json:"spaces"`
 }
 
 // CitySpace Part of a City, which is part of Board
 type CitySpace struct {
 	Model
-	CityID            ID                   `json:"cityId"`
-	Order             int           `json:"order"`
+	CityID            ID            `json:"cityId"`
+	Order             int16         `json:"order"`
 	SpaceType         TradesmanType `json:"spaceType"`
-	RequiredPrivilege int            `json:"requiredPrivilege"`
+	RequiredPrivilege int16         `json:"requiredPrivilege"`
 }
 
 // Route Connects two City on a Board
@@ -79,6 +81,6 @@ type Route struct {
 // RouteSpace part of the board structure
 type RouteSpace struct {
 	Model
-	RouteID ID  `json:"routeId"`
-	Order   int `json:"order"`
+	RouteID ID    `json:"routeId"`
+	Order   int32 `json:"order"`
 }

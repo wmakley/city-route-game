@@ -1,0 +1,7 @@
+version: 1
+packages:
+    - path: "internal/sqlc"
+      name: "sqlc"
+      engine: "postgresql"
+      schema: "db/schema.sql"
+      queries: "db/query"

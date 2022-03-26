@@ -27,7 +27,7 @@ func GetIP(r *http.Request) (string, error) {
 	return ip, nil
 }
 
-func SetCorsHeaders(w http.ResponseWriter, r *http.Request) {
+func SetCorsHeaders(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PATCH, PUT, DELETE")
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding")
@@ -71,41 +71,41 @@ type ErrorJson struct {
 	Message string `json:"message"`
 }
 
-func JsonInternalServerError(msg string, w http.ResponseWriter, r *http.Request) {
+func JsonInternalServerError(msg string, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
 	body := ErrorJson{500, msg}
 	MustEncode(w, body)
 }
 
-func JsonBadReqest(msg string, w http.ResponseWriter, r *http.Request) {
+func JsonBadRequest(msg string, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusBadRequest)
 	body := ErrorJson{400, msg}
 	MustEncode(w, body)
 }
 
-func JsonNotFound(w http.ResponseWriter, r *http.Request) {
+func JsonNotFound(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
 	body := ErrorJson{404, "404 Not Found"}
 	MustEncode(w, body)
 }
 
-func JsonRecordNotFound(recordName string, key string, w http.ResponseWriter, r *http.Request) {
+func JsonRecordNotFound(recordName string, key string, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
 	msg := fmt.Sprintf("%s with ID %s not found!", recordName, key)
 	body := ErrorJson{404, msg}
 	MustEncode(w, body)
 }
 
-func JsonHandleDbErr(err error, w http.ResponseWriter, r *http.Request) {
+func JsonHandleDbErr(err error, w http.ResponseWriter) {
 	if err == gorm.ErrRecordNotFound {
-		JsonNotFound(w, r)
+		JsonNotFound(w)
 		return
 	} else {
-		JsonInternalServerError(err.Error(), w, r)
+		JsonInternalServerError(err.Error(), w)
 	}
 }
 
-func TurbolinksVisit(url string, clearCache bool, w http.ResponseWriter, r *http.Request) {
+func TurbolinksVisit(url string, clearCache bool, w http.ResponseWriter) {
 	clearCacheStep := ""
 	if clearCache {
 		clearCacheStep = "Turbolinks.clearCache();"

@@ -7,6 +7,7 @@
 	data-remote="true"
 	novalidate>
 
+	{{.CSRFTemplateTag}}
 	<input type="hidden" name="_method" value="{{.Method}}">
 	<input type="hidden" name="ID" value="{{.ID}}">
 

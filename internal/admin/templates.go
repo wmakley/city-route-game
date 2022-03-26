@@ -18,14 +18,14 @@ type PageWithData struct {
 	Data interface{}
 }
 
-func NewPageWithData(assetHost string, data interface{}) Page {
+func (c Controller)NewPageWithData(data interface{}) Page {
 	return &PageWithData{
-		assetHost: assetHost,
+		assetHost: c.AssetHost,
 		Data: data,
 	}
 }
 
-func (p *PageWithData) AssetHost() string {
+func (p PageWithData) AssetHost() string {
 	return p.assetHost
 }
 
@@ -57,9 +57,9 @@ func (c Controller)ParseAndExecuteAdminTemplate(w io.Writer, shortPath string, d
 	return nil
 }
 
-// Store an executed template in a buffer before writing it to "w".
+// ExecuteTemplateBuffered Store an executed template in a buffer before writing it to "w".
 // This allows you to gracefully recover from a template execution failure
-// during an http request, rather than send partial HTML.
+// during a request, rather than send partial HTML.
 func ExecuteTemplateBuffered(t *template.Template, w io.Writer, templateName string, data interface{}) error {
 	buffer := bytes.NewBuffer(make([]byte, 0, 1024)) // 1K buffer (should hold output of smallest templates easily)
 

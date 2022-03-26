@@ -28,14 +28,14 @@ type constraintViolation struct {
 	msg string
 }
 
-func (c *constraintViolation)Error() string {
+func (c *constraintViolation) Error() string {
 	return c.msg
 }
 
 // Model is a simpler version of gorm.Model with JSON tags and without the DeletedAt column.
 // When we delete, we mean it!
 type Model struct {
-	ID        ID    `json:"id" gorm:"primarykey"`
+	ID        ID        `json:"id" gorm:"primarykey"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
@@ -44,17 +44,17 @@ type ID = app.ID
 
 // Position is a shared mixin with X and Y
 type Position struct {
-	X int `json:"x" gorm:"not null;default:0"`
-	Y int `json:"y" gorm:"not null;default:0"`
+	X int32 `json:"x" gorm:"not null;default:0"`
+	Y int32 `json:"y" gorm:"not null;default:0"`
 }
 
 // Board structure base model
 type Board struct {
 	Model
 	Name   string `json:"name" gorm:"not null;uniqueIndex"`
-	GameID *ID  `json:"gameId" gorm:"index"`
-	Width  int    `json:"width" gorm:"not null;default:0"`
-	Height int    `json:"height" gorm:"not null;default:0"`
+	GameID *ID    `json:"gameId" gorm:"index"`
+	Width  int32  `json:"width" gorm:"not null;default:0"`
+	Height int32  `json:"height" gorm:"not null;default:0"`
 	Cities []City `json:"cities"`
 }
 
@@ -69,8 +69,8 @@ func newGormBoardFromDomainBoard(board *app.Board) (*Board, error) {
 			CreatedAt: board.CreatedAt,
 			UpdatedAt: board.UpdatedAt,
 		},
-		Name: board.Name,
-		Width: board.Width,
+		Name:   board.Name,
+		Width:  board.Width,
 		Height: board.Height,
 	}, nil
 }
@@ -86,13 +86,13 @@ func newDomainBoardFromGormBoard(gormBoard *Board) *app.Board {
 			CreatedAt: gormBoard.CreatedAt,
 			UpdatedAt: gormBoard.UpdatedAt,
 		},
-		Name: gormBoard.Name,
-		Width: gormBoard.Width,
+		Name:   gormBoard.Name,
+		Width:  gormBoard.Width,
 		Height: gormBoard.Height,
 	}
 }
 
-func (b *Board)BeforeDelete(tx *gorm.DB) error {
+func (b *Board) BeforeDelete(tx *gorm.DB) error {
 	var cities []City
 	var err error
 
@@ -113,25 +113,25 @@ func (b *Board)BeforeDelete(tx *gorm.DB) error {
 // City part of the Board structure
 type City struct {
 	Model
-	BoardID    ID   `json:"boardId" gorm:"not null;index"`
+	BoardID    ID     `json:"boardId" gorm:"not null;index"`
 	Name       string `json:"name" gorm:"not null"`
 	Position   `json:"position"`
 	CitySpaces []CitySpace `json:"spaces"`
 }
 
-func newGormCityFromAppCity(appCity *app.City)(*City, error) {
+func newGormCityFromAppCity(appCity *app.City) (*City, error) {
 	if appCity == nil {
 		panic("appCity must not be nil")
 	}
 
 	city := City{
 		Model: Model{
-			ID: appCity.ID,
+			ID:        appCity.ID,
 			CreatedAt: appCity.CreatedAt,
 			UpdatedAt: appCity.UpdatedAt,
 		},
 		BoardID: appCity.BoardID,
-		Name: appCity.Name,
+		Name:    appCity.Name,
 		Position: Position{
 			X: appCity.Position.X,
 			Y: appCity.Position.Y,
@@ -160,12 +160,12 @@ func newAppCityFromGormCity(gormCity *City) *app.City {
 
 	city := app.City{
 		Model: app.Model{
-			ID: gormCity.ID,
+			ID:        gormCity.ID,
 			CreatedAt: gormCity.CreatedAt,
 			UpdatedAt: gormCity.UpdatedAt,
 		},
 		BoardID: gormCity.BoardID,
-		Name: gormCity.Name,
+		Name:    gormCity.Name,
 		Position: app.Position{
 			X: gormCity.Position.X,
 			Y: gormCity.Position.Y,
@@ -184,7 +184,7 @@ func newAppCityFromGormCity(gormCity *City) *app.City {
 	return &city
 }
 
-func (c *City)BeforeSave(tx *gorm.DB) error {
+func (c *City) BeforeSave(tx *gorm.DB) error {
 	// Ensure board exists
 	var result []uint64
 	err := tx.Table("boards").
@@ -200,7 +200,7 @@ func (c *City)BeforeSave(tx *gorm.DB) error {
 	return nil
 }
 
-func (c *City)BeforeDelete(tx *gorm.DB) error {
+func (c *City) BeforeDelete(tx *gorm.DB) error {
 	err := tx.Delete(&CitySpace{}, "city_id = ?", c.ID).Error
 	if err != nil {
 		return err
@@ -223,50 +223,50 @@ func (c *City)BeforeDelete(tx *gorm.DB) error {
 // CitySpace Part of a City, which is part of Board
 type CitySpace struct {
 	Model
-	CityID            ID          `json:"cityId" gorm:"not null;uniqueIndex:uidx_city_space_city_id_order"`
-	Order             int           `json:"order" gorm:"not null;index:uidx_city_space_city_id_order"`
+	CityID            ID                `json:"cityId" gorm:"not null;uniqueIndex:uidx_city_space_city_id_order"`
+	Order             int16             `json:"order" gorm:"not null;index:uidx_city_space_city_id_order"`
 	SpaceType         app.TradesmanType `json:"spaceType" gorm:"not null;default:1"`
-	RequiredPrivilege int           `json:"requiredPrivilege" gorm:"not null;default:1"`
+	RequiredPrivilege int16             `json:"requiredPrivilege" gorm:"not null;default:1"`
 }
 
-func newGormCitySpaceFromAppCitySpace(space *app.CitySpace)(*CitySpace, error) {
+func newGormCitySpaceFromAppCitySpace(space *app.CitySpace) (*CitySpace, error) {
 	return &CitySpace{
 		Model: Model{
-			ID: space.ID,
+			ID:        space.ID,
 			CreatedAt: space.CreatedAt,
 			UpdatedAt: space.UpdatedAt,
 		},
-		CityID: space.CityID,
-		SpaceType: space.SpaceType,
-		RequiredPrivilege: space.RequiredPrivilege,
-		Order: space.Order,
+		CityID:            space.CityID,
+		SpaceType:         space.SpaceType,
+		RequiredPrivilege: int16(space.RequiredPrivilege),
+		Order:             int16(space.Order),
 	}, nil
 }
 
-func newAppCitySpaceFromGormCitySpace(space *CitySpace)(*app.CitySpace) {
+func newAppCitySpaceFromGormCitySpace(space *CitySpace) *app.CitySpace {
 	return &app.CitySpace{
 		Model: app.Model{
-			ID: space.ID,
+			ID:        space.ID,
 			CreatedAt: space.CreatedAt,
 			UpdatedAt: space.UpdatedAt,
 		},
-		CityID: space.CityID,
-		SpaceType: space.SpaceType,
-		RequiredPrivilege: space.RequiredPrivilege,
-		Order: space.Order,
+		CityID:            space.CityID,
+		SpaceType:         space.SpaceType,
+		RequiredPrivilege: int32(space.RequiredPrivilege),
+		Order: int32(space.Order),
 	}
 }
 
 // Route Connects two City on a Board
 type Route struct {
 	Model
-	StartCityID ID         `json:"startCityId" gorm:"not null;index"`
-	EndCityID   ID         `json:"endCityId" gorm:"not null;index"`
+	StartCityID ID           `json:"startCityId" gorm:"not null;index"`
+	EndCityID   ID           `json:"endCityId" gorm:"not null;index"`
 	TavernFlag  bool         `json:"tavernFlag" gorm:"not null;default:0"`
 	RouteSpaces []RouteSpace `json:"spaces"`
 }
 
-func (r *Route)BeforeDelete(tx *gorm.DB) error {
+func (r *Route) BeforeDelete(tx *gorm.DB) error {
 	if err := tx.Delete(&RouteSpace{}, "route_id = ?", r.ID).Error; err != nil {
 		return err
 	}
@@ -276,8 +276,8 @@ func (r *Route)BeforeDelete(tx *gorm.DB) error {
 // RouteSpace part of the board structure
 type RouteSpace struct {
 	Model
-	RouteID ID `json:"routeId" gorm:"not null;uniqueIndex:uidx_route_space_route_order"`
-	Order   int  `json:"order" gorm:"not null;index:uidx_route_space_route_order"`
+	RouteID ID  `json:"routeId" gorm:"not null;uniqueIndex:uidx_route_space_route_order"`
+	Order   int `json:"order" gorm:"not null;index:uidx_route_space_route_order"`
 }
 
 // Game represents the game state
@@ -293,7 +293,7 @@ type Game struct {
 // Player is part of the game state
 type Player struct {
 	Model
-	GameID ID   `json:"gameId" gorm:"uniqueIndex:uidx_game_id_player_name"`
+	GameID ID     `json:"gameId" gorm:"uniqueIndex:uidx_game_id_player_name"`
 	Name   string `json:"name" gorm:"not null;index:uidx_game_id_player_name"`
 	Color  string `json:"color" gorm:"not null"`
 	Score  int    `json:"score" gorm:"not null;default:0"`
@@ -303,18 +303,18 @@ type Player struct {
 // todo: unique index on game id and player id
 type PlayerBoard struct {
 	Model
-	GameID            ID `json:"gameId" gorm:"uniqueIndex:uidx_player_board"`
-	PlayerID          ID `json:"playerId" gorm:"index:uidx_player_board"`
-	Merchants         int  `gorm:"not null;default:0"`
-	Traders           int  `gorm:"not null;default:0"`
-	MerchantSupply    int  `gorm:"not null;default:0"`
-	TraderSupply      int  `gorm:"not null;default:0"`
-	ActionLevel       int  `gorm:"not null;default:1"`
-	BankLevel         int  `gorm:"not null;default:1"`
-	MoveLevel         int  `gorm:"not null;default:1"`
-	KnowledgeLevel    int  `gorm:"not null;default:1"`
-	CityKeyLevel      int  `gorm:"not null;default:1"`
-	PrivilegeLevel    int  `gorm:"not null;default:1"`
+	GameID            ID  `json:"gameId" gorm:"uniqueIndex:uidx_player_board"`
+	PlayerID          ID  `json:"playerId" gorm:"index:uidx_player_board"`
+	Merchants         int `gorm:"not null;default:0"`
+	Traders           int `gorm:"not null;default:0"`
+	MerchantSupply    int `gorm:"not null;default:0"`
+	TraderSupply      int `gorm:"not null;default:0"`
+	ActionLevel       int `gorm:"not null;default:1"`
+	BankLevel         int `gorm:"not null;default:1"`
+	MoveLevel         int `gorm:"not null;default:1"`
+	KnowledgeLevel    int `gorm:"not null;default:1"`
+	CityKeyLevel      int `gorm:"not null;default:1"`
+	PrivilegeLevel    int `gorm:"not null;default:1"`
 	PlateBonusTokenID *ID
 }
 
@@ -332,10 +332,10 @@ type PlayerBonusToken struct {
 // Represents a bonus token in the supply, initialized at start of game
 type SupplyBonusToken struct {
 	Model
-	GameID     ID `gorm:"not null;uniqueIndex:uidx_supply_bonus_token"`
-	BonusTokenID ID `gorm:"not null;index:uidx_supply_bonus_token"`
-	Order      int  `gorm:"not null;index:uidx_supply_bonus_token"`
-	BonusToken BonusToken
+	GameID       ID  `gorm:"not null;uniqueIndex:uidx_supply_bonus_token"`
+	BonusTokenID ID  `gorm:"not null;index:uidx_supply_bonus_token"`
+	Order        int `gorm:"not null;index:uidx_supply_bonus_token"`
+	BonusToken   BonusToken
 }
 
 // Game state
@@ -350,7 +350,6 @@ type RouteBonusToken struct {
 // BonusToken represents a single bonus token in the game state
 type BonusToken struct {
 	Model
-	BonusTokenTypeID ID `gorm:"not null"`
+	BonusTokenTypeID ID   `gorm:"not null"`
 	Gold             bool `gorm:"not null"`
 }
-

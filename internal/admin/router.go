@@ -7,7 +7,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func NewAdminRouter(boardController *BoardController, cityController *CityController, ipWhitelist []string, logRequests bool) *mux.Router {
+func NewAdminRouter(
+	boardController *BoardController,
+	cityController *CityController,
+	ipWhitelist []string,
+	logRequests bool,
+) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	if logRequests {
 		router.Use(middleware.RequestLogger)

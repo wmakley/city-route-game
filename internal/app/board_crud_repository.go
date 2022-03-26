@@ -20,7 +20,7 @@ type BoardCrudRepository interface {
 	DeleteCityByID(ctx context.Context, id ID) error
 
 	CreateCitySpace(context.Context, *CitySpace) error
-	UpdateCitySpace(ctx context.Context, id ID, updateFn func (space *CitySpace) (*CitySpace, error)) error
+	UpdateCitySpace(ctx context.Context, id ID, updateFn func (space *CitySpace) (*CitySpace, error)) (*CitySpace, error)
 	GetCitySpacesByCityID(ctx context.Context, cityID ID) ([]CitySpace, error)
 	DeleteCitySpaceByID(ctx context.Context, id ID) error
 }
